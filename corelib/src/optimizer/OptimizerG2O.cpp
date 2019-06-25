@@ -1794,6 +1794,161 @@ std::map<int, Transform> OptimizerG2O::optimizeBA(
 	return optimizedPoses;
 }
 
+bool OptimizerG2O::loadGraph(
+    const std::string &filename,
+    std::map<int, rtabmap::Transform> &poses,
+    std::multimap<int, rtabmap::Link> &edgeConstraints)
+{
+    FILE * file = 0;
+#ifdef _MSC_VER
+    fopen_s(&file, fileName.c_str(), "r");
+#else
+    file = fopen(fileName.c_str(), "r");
+#endif
+
+    if(file)
+    {
+        char line[400];
+        while ( fgets (line , 400 , file) != NULL )
+        {
+            std::vector<std::string> strList = uListToVector(uSplit(uReplaceChar(line, '\n', ' '), ' '));
+            if(strList.size() == 8)
+            {
+                //VERTEX_SE3
+                int id = atoi(strList[1].c_str());
+                float x = uStr2Float(strList[2]);
+                float y = uStr2Float(strList[3]);
+                float z = uStr2Float(strList[4]);
+                float roll = uStr2Float(strList[5]);
+                float pitch = uStr2Float(strList[6]);
+                float yaw = uStr2Float(strList[7]);
+                Transform pose(x, y, z, roll, pitch, yaw);
+                if(poses.find(id) == poses.end())
+                {
+                    poses.insert(std::make_pair(id, pose));
+                }
+                else
+                {
+                    UFATAL("Pose %d already added", id);
+                }
+            }
+            else if(strList.size() == 5)
+            {
+                //VERTEX_SE2
+                int id = atoi(strList[1].c_str());
+                float x = uStr2Float(strList[2]);
+                float y = uStr2Float(strList[3]);
+                float rot = uStr2Float(strList[4]);
+                Transform pose(x, y, rot);
+                if(poses.find(id) == poses.end())
+                {
+                    poses.insert(std::make_pair(id, pose));
+                }
+                else
+                {
+                    UFATAL("Pose %d already added", id);
+                }
+
+            }
+            else if(strList.size() == 30)
+            {
+                //EDGE_SE3
+                int idFrom = atoi(strList[1].c_str());
+                int idTo = atoi(strList[2].c_str());
+                float x = uStr2Float(strList[3]);
+                float y = uStr2Float(strList[4]);
+                float z = uStr2Float(strList[5]);
+                float roll = uStr2Float(strList[6]);
+                float pitch = uStr2Float(strList[7]);
+                float yaw = uStr2Float(strList[8]);
+                cv::Mat informationMatrix(6,6,CV_64FC1);
+                informationMatrix.at<double>(0,0) = uStr2Float(strList[9]);
+                informationMatrix.at<double>(0,1) = uStr2Float(strList[10]);
+                informationMatrix.at<double>(0,2) = uStr2Float(strList[11]);
+                informationMatrix.at<double>(0,3) = uStr2Float(strList[12]);
+                informationMatrix.at<double>(0,4) = uStr2Float(strList[13]);
+                informationMatrix.at<double>(0,5) = uStr2Float(strList[14]);
+
+                informationMatrix.at<double>(1,1) = uStr2Float(strList[15]);
+                informationMatrix.at<double>(1,2) = uStr2Float(strList[16]);
+                informationMatrix.at<double>(1,3) = uStr2Float(strList[17]);
+                informationMatrix.at<double>(1,4) = uStr2Float(strList[18]);
+                informationMatrix.at<double>(1,5) = uStr2Float(strList[19]);
+
+                informationMatrix.at<double>(2,2) = uStr2Float(strList[20]);
+                informationMatrix.at<double>(2,3) = uStr2Float(strList[21]);
+                informationMatrix.at<double>(2,4) = uStr2Float(strList[22]);
+                informationMatrix.at<double>(2,5) = uStr2Float(strList[23]);
+
+                informationMatrix.at<double>(3,3) = uStr2Float(strList[24]);
+                informationMatrix.at<double>(3,4) = uStr2Float(strList[25]);
+                informationMatrix.at<double>(3,5) = uStr2Float(strList[26]);
+
+                informationMatrix.at<double>(4,4) = uStr2Float(strList[27]);
+                informationMatrix.at<double>(4,5) = uStr2Float(strList[28]);
+
+                informationMatrix.at<double>(5,5) = uStr2Float(strList[29]);
+
+                Transform transform(x, y, z, roll, pitch, yaw);
+                if(poses.find(idFrom) != poses.end() && poses.find(idTo) != poses.end())
+                {
+                    //Link type is unknown
+                    Link link(idFrom, idTo, Link::kUndef, transform, informationMatrix);
+                    edgeConstraints.insert(std::pair<int, Link>(idFrom, link));
+                }
+                else
+                {
+                    UFATAL("Referred poses from the link not exist!");
+                }
+            }
+            else if(strList.size() == 12)
+            {
+                //EDGE_SE2
+                int idFrom = atoi(strList[1].c_str());
+                int idTo = atoi(strList[2].c_str());
+                float x = uStr2Float(strList[3]);
+                float y = uStr2Float(strList[4]);
+                float rot = uStr2Float(strList[5]);
+                cv::Mat informationMatrix(6,6,CV_64FC1);
+                informationMatrix.at<double>(0,0) = uStr2Float(strList[6]);
+                informationMatrix.at<double>(0,1) = uStr2Float(strList[7]);
+                informationMatrix.at<double>(0,5) = uStr2Float(strList[8]);
+
+                informationMatrix.at<double>(1,1) = uStr2Float(strList[9]);
+                informationMatrix.at<double>(1,5) = uStr2Float(strList[10]);
+
+                informationMatrix.at<double>(5,5) = uStr2Float(strList[11]);
+
+                Transform transform(x, y, rot);
+                if(poses.find(idFrom) != poses.end() && poses.find(idTo) != poses.end())
+                {
+                    //Link type is unknown
+                    Link link(idFrom, idTo, Link::kUndef, transform, informationMatrix);
+                    edgeConstraints.insert(std::pair<int, Link>(idFrom, link));
+                }
+                else
+                {
+                    UFATAL("Referred poses from the link not exist!");
+                }
+            }
+            else if(strList.size())
+            {
+                UFATAL("Error parsing graph file %s on line \"%s\" (strList.size()=%d)", fileName.c_str(), line, (int)strList.size());
+            }
+        }
+
+        UINFO("Graph loaded from %s", fileName.c_str());
+        fclose(file);
+    }
+    else
+    {
+        UERROR("Cannot open file %s", fileName.c_str());
+        return false;
+    }
+    return true;
+
+}
+
 bool OptimizerG2O::saveGraph(
 		const std::string & fileName,
 		const std::map<int, Transform> & poses,

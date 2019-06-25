@@ -42,6 +42,12 @@ public:
 	static bool isCholmodAvailable();
 
 public:
+    static bool loadGraph(
+        const std::string & fileName,
+        std::map<int, Transform> & poses,
+        std::multimap<int, Link> & edgeConstraints);
+
+public:
 	OptimizerG2O(const ParametersMap & parameters = ParametersMap()) :
 		Optimizer(parameters),
 		solver_(Parameters::defaultg2oSolver()),
@@ -80,6 +86,10 @@ public:
 		const std::string & fileName,
 		const std::map<int, Transform> & poses,
 		const std::multimap<int, Link> & edgeConstraints);
+
+
+
+
 
 private:
 	int solver_;

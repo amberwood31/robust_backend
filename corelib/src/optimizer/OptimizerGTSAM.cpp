@@ -403,6 +403,7 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 
 				if(isSlam2d())
 				{
+					//////////////// Create information matrix /////////////////
 					Eigen::Matrix<double, 3, 3> information = Eigen::Matrix<double, 3, 3>::Identity();
 					if(!isCovarianceIgnored())
 					{
@@ -417,6 +418,8 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 						information(2,2) = iter->second.infMatrix().at<double>(5,5); // theta-theta
 					}
 					gtsam::noiseModel::Gaussian::shared_ptr model = gtsam::noiseModel::Gaussian::Information(information);
+
+					////////////////////////////////////////////////////////////
 
 #ifdef RTABMAP_VERTIGO
 					if(this->isRobust() &&
@@ -706,7 +709,7 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 		UWARN("This method should be called at least with 1 pose!");
 	}
 	UDEBUG("Optimizing graph...end!");
-#else
+#else // #ifdef RTABMAP_GTSAM
 	UERROR("Not built with GTSAM support!");
 #endif
 	return optimizedPoses;
