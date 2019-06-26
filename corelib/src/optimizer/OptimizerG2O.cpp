@@ -1795,7 +1795,7 @@ std::map<int, Transform> OptimizerG2O::optimizeBA(
 }
 
 bool OptimizerG2O::loadGraph(
-    const std::string &filename,
+    const std::string &fileName,
     std::map<int, rtabmap::Transform> &poses,
     std::multimap<int, rtabmap::Link> &edgeConstraints)
 {
