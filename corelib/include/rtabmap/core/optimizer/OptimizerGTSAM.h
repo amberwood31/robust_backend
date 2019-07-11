@@ -32,12 +32,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <rtabmap/core/Optimizer.h>
 
+#include <gtsam/slam/dataset.h> // to read g2o file
+
+
 namespace rtabmap {
 
 class RTABMAP_EXP OptimizerGTSAM : public Optimizer
 {
 public:
 	static bool available();
+
+public:
+    static bool loadGraph(
+        const std::string & fileName,
+        std::map<int, Transform> & poses,
+        std::multimap<int, Link> & edgeConstraints);
 
 public:
 	OptimizerGTSAM(const ParametersMap & parameters = ParametersMap()) :

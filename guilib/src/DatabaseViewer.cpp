@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "rtabmap/gui/DatabaseViewer.h"
 #include "rtabmap/gui/CloudViewer.h"
-#include "ui_DatabaseViewer.h"
+#include "rtabmap/gui/ui_DatabaseViewer.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
