@@ -20,7 +20,7 @@ int main(){
     ULogger::setLevel(ULogger::kDebug);
 
 
-    const std::string & path = "/home/amber/pose_dataset/from_PY/original/CSAIL_P_eq.g2o";
+    const std::string & path = "/home/amber/pose_dataset/vertigo/manhattan/originalDataset/Olson/manhattanOlson3500.g2o";
     int format_local = 4; // 0=Raw, 1=RGBD-SLAM motion capture (10=without change of coordinate frame), 2=KITTI, 3=TORO, 4=g2o, 5=NewCollege(t,x,y), 6=Malaga Urban GPS, 7=St Lucia INS, 8=Karlsruhe
     std::map<int, rtabmap::Transform> poses;
     std::multimap<int, rtabmap::Link>  constraints;
@@ -30,8 +30,6 @@ int main(){
 
     if (rtabmap::graph::importPoses(path, format_local, poses, &constraints , 0))
     {
-        //TODO_LOCAL: right now all edges are loaded as kAllWithoutLandmarks type, therefore all added as switchable
-        // edge in vertigo. Is it necessary?
 
         std::cout<<"load g2o file successfully"<< std::endl;
         cv::Mat covariance;
@@ -52,10 +50,10 @@ int main(){
         optimizer->getConnectedGraph(poses.rbegin()->first, poses, constraints, posesOut, linksOut);
 
         std::map<int, rtabmap::Transform> finalPoses;
-        finalPoses = optimizer->optimize(posesOut.rbegin()->first, posesOut, linksOut, 0);
+        finalPoses = optimizer->optimize(posesOut.begin()->first, posesOut, linksOut, 0);
 
         //save the final poses to a file
-        std::string export_path = "/home/amber/pose_dataset/csail_output.g2o";
+        std::string export_path = "/home/amber/pose_dataset/manhattan_output.g2o";
         std::map<int, double> stamps;
         if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, linksOut, stamps, configParameters))
         {

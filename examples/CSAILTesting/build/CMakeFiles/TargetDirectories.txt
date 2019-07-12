@@ -1,3 +1,0 @@
-/home/amber/rtabmap/examples/CSAILTesting/build/CMakeFiles/edit_cache.dir
-/home/amber/rtabmap/examples/CSAILTesting/build/CMakeFiles/rebuild_cache.dir
-/home/amber/rtabmap/examples/CSAILTesting/build/CMakeFiles/csail.dir

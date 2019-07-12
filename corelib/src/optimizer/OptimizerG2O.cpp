@@ -1922,8 +1922,14 @@ bool OptimizerG2O::loadGraph(
                 Transform transform(x, y, rot);
                 if(poses.find(idFrom) != poses.end() && poses.find(idTo) != poses.end())
                 {
-                    //Link type is unknown
+
                     Link link(idFrom, idTo, Link::kUndef, transform, informationMatrix);
+                    //Link type is kNeighbor if id is sequential
+                    if ((idTo - idFrom) == 1)
+                    {
+                        link.setType(Link::kNeighbor);
+                    }
+
                     edgeConstraints.insert(std::pair<int, Link>(idFrom, link));
                 }
                 else
