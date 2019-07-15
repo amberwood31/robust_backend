@@ -48,6 +48,12 @@ public:
         std::map<int, Transform> & poses,
         std::multimap<int, Link> & edgeConstraints);
 
+    bool saveGraph(
+        const std::string & fileName,
+        const std::map<int, Transform> & poses,
+        const std::multimap<int, Link> & edgeConstraints);
+
+
 public:
 	OptimizerGTSAM(const ParametersMap & parameters = ParametersMap()) :
 		Optimizer(parameters),

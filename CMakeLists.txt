@@ -4,6 +4,12 @@ cmake_minimum_required(VERSION 2.8.5)
 PROJECT( RTABMap )
 SET(PROJECT_PREFIX rtabmap)
 
+
+# Enable support for inline function
+#set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf")
+#set(CMAKE_CXX_FLAGS "-gdwarf-2") 
+#message("CMAKE_CXX_FLAGS_DEBUG is ${CMAKE_CXX_FLAGS_DEBUG}")
+
 # Catkin doesn't support multiarch library path, 
 # fix to "lib" if not set by user.
 OPTION(MULTI_ARCH "Activate multi-arch lib directory (debian)" OFF)

@@ -4,7 +4,6 @@
 
 #include "rtabmap/core/Graph.h"
 #include "rtabmap/core/Transform.h"
-#include "rtabmap/core/optimizer/OptimizerG2O.h"
 #include "rtabmap/core/optimizer/OptimizerGTSAM.h"
 #include "rtabmap/core/Optimizer.h"
 #include "rtabmap/core/Rtabmap.h"
@@ -20,13 +19,14 @@ int main(){
     ULogger::setLevel(ULogger::kDebug);
 
 
-    const std::string & path = "/home/amber/pose_dataset/vertigo/manhattan/originalDataset/Olson/manhattanOlson3500.g2o";
+    const std::string & path = "/home/amber/pose_dataset/test_rtabmap_backend/manhattan_with_outlier.g2o";
     int format_local = 4; // 0=Raw, 1=RGBD-SLAM motion capture (10=without change of coordinate frame), 2=KITTI, 3=TORO, 4=g2o, 5=NewCollege(t,x,y), 6=Malaga Urban GPS, 7=St Lucia INS, 8=Karlsruhe
     std::map<int, rtabmap::Transform> poses;
     std::multimap<int, rtabmap::Link>  constraints;
 
     // Create RTAB-Map
     rtabmap::Rtabmap rtabmap;
+
 
     if (rtabmap::graph::importPoses(path, format_local, poses, &constraints , 0))
     {
@@ -39,6 +39,11 @@ int main(){
         const std::string ini_path = "/home/amber/.rtabmap/rtabmap.ini";
         rtabmap::Parameters::readINI(ini_path, configParameters);
 
+        std::string workingDir = "/home/amber/pose_dataset/test_rtabmap_backend";
+        rtabmap.parseParameters(configParameters);
+        //log
+        rtabmap.setWorkingDirectory(workingDir);
+
         //create gtsam optimizer
         rtabmap::Optimizer * optimizer = rtabmap::Optimizer::create(configParameters);
 
@@ -50,7 +55,11 @@ int main(){
         optimizer->getConnectedGraph(poses.rbegin()->first, poses, constraints, posesOut, linksOut);
 
         std::map<int, rtabmap::Transform> finalPoses;
-        finalPoses = optimizer->optimize(posesOut.begin()->first, posesOut, linksOut, 0);
+        std::list<std::map<int, rtabmap::Transform>> intermediateGraphes; // TODO_LOCAL: maybe write a visualization code using this variable
+                                                                           // use opengl/qt5 as the way g2o_viewer did
+        finalPoses = optimizer->optimize(posesOut.begin()->first, posesOut, linksOut, &intermediateGraphes);
+
+
 
         //save the final poses to a file
         std::string export_path = "/home/amber/pose_dataset/manhattan_output.g2o";

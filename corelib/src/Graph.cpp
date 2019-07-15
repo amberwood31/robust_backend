@@ -45,6 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <rtabmap/core/optimizer/OptimizerTORO.h>
 #include <rtabmap/core/optimizer/OptimizerG2O.h>
+#include <rtabmap/core/optimizer/OptimizerGTSAM.h>
 
 namespace rtabmap {
 
@@ -75,8 +76,8 @@ bool exportPoses(
 		{
 			tmpPath+=".g2o";
 		}
-		OptimizerG2O g2o(parameters);
-		return g2o.saveGraph(tmpPath, poses, constraints);
+		OptimizerGTSAM gtsam(parameters);
+		return gtsam.saveGraph(tmpPath, poses, constraints);
 	}
 	else
 	{
@@ -189,7 +190,7 @@ bool importPoses(
 	else if(format == 4) // g2o
 	{
 		std::multimap<int, Link> constraintsTmp;
-        if(OptimizerG2O::loadGraph(filePath, poses, constraintsTmp))
+        if(OptimizerGTSAM::loadGraph(filePath, poses, constraintsTmp))
         {
             if(constraints)
             {
