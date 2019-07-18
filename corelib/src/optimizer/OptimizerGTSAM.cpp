@@ -211,6 +211,7 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 				}
 			}
 		}
+        UDEBUG("%d poses in initialEstimate variable", initialEstimate.size());
 
 		UDEBUG("fill edges to gtsam...");
 		int switchCounter = poses.rbegin()->first+1;
@@ -471,6 +472,7 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 		UDEBUG("%d switch vertex has been added", switchCounter- poses.size() -1);
 
 		UDEBUG("create optimizer");
+
 		gtsam::NonlinearOptimizer * optimizer;
 
 		if(optimizer_ == 2)
@@ -556,6 +558,12 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 						}
 					}
 				}
+				// Save poses for every iteration
+				std::string filename = "poses_transition";
+                std::string tmpPath = filename + "_"+ std::to_string(it) + ".g2o";
+                std::multimap<int, Link> empty_link;
+
+				saveGraph(tmpPath, tmpPoses, empty_link);
 				intermediateGraphes->push_back(tmpPoses);
 			}
 			try
@@ -573,27 +581,35 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 			}
 
 			// early stop condition
+
 			double error = optimizer->error();
-			UDEBUG("iteration %d error =%f", i+1, error);
-			double errorDelta = lastError - error;
-			if(i>0 && errorDelta < this->epsilon())
-			{
-				if(errorDelta < 0)
-				{
-					UDEBUG("Negative improvement?! Ignore and continue optimizing... (%f < %f)", errorDelta, this->epsilon());
-				}
-				else
-				{
-					UDEBUG("Stop optimizing, not enough improvement (%f < %f)", errorDelta, this->epsilon());
-					break;
-				}
-			}
-			else if(i==0 && error < this->epsilon())
-			{
-				UINFO("Stop optimizing, error is already under epsilon (%f < %f)", error, this->epsilon());
-				break;
-			}
-			lastError = error;
+
+            UDEBUG("iteration %d error =%f", i+1, error);
+            /*
+            double errorDelta = lastError - error;
+            if(i>0 && errorDelta < this->epsilon())
+            {
+                if(errorDelta < 0)
+                {
+                    UDEBUG("Negative improvement?! Ignore and continue optimizing... (%f < %f)", errorDelta, this->epsilon());
+                }
+                else
+                {
+                    UDEBUG("Stop optimizing, not enough improvement (%f < %f)", errorDelta, this->epsilon());
+                    break;
+                }
+
+            }
+            else if(i==0 && error < this->epsilon())
+            {
+                UINFO("Stop optimizing, error is already under epsilon (%f < %f)", error, this->epsilon());
+                break;
+            }
+             */
+            lastError = error;
+            std::cout << "Optimization results: " << std::endl;
+            optimizer->values().print(); // print final optimized values
+
 		}
 		if(finalError)
 		{
@@ -603,11 +619,8 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 		{
 			*iterationsDone = it;
 		}
-		std::cout << "Initial Estimates: " << std::endl;
-        initialEstimate.print(); // print initial values
 
-        std::cout << "Optimization results: " << std::endl;
-		optimizer->values().print(); // print final optimized values
+
 		UDEBUG("GTSAM optimizing end (%d iterations done, error=%f (initial=%f final=%f), time=%f s)",
 				optimizer->iterations(), optimizer->error(), graph.error(initialEstimate), graph.error(optimizer->values()), timer.ticks());
 
@@ -664,11 +677,13 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 			}
 			else
             {
-			    // save the switchVariable values
+                //std::cout << (std::uint64_t)iter->key << std::endl;// print the switchVariable values
+			    //std::cout << iter->value.cast<double>() << std::endl;
 
 
             }
 		}
+
 
 		// compute marginals
 		try {
@@ -848,10 +863,14 @@ bool OptimizerGTSAM::loadGraph(
                 cv::Mat informationMatrix(6,6,CV_64FC1);
                 informationMatrix.at<double>(0,0) = uStr2Float(strList[6]);
                 informationMatrix.at<double>(0,1) = uStr2Float(strList[7]);
+                informationMatrix.at<double>(1,0) = informationMatrix.at<double>(0,1);
+
                 informationMatrix.at<double>(0,5) = uStr2Float(strList[8]);
+                informationMatrix.at<double>(5,0) = informationMatrix.at<double>(0,5);
 
                 informationMatrix.at<double>(1,1) = uStr2Float(strList[9]);
                 informationMatrix.at<double>(1,5) = uStr2Float(strList[10]);
+                informationMatrix.at<double>(5,1) = informationMatrix.at<double>(1,5);
 
                 informationMatrix.at<double>(5,5) = uStr2Float(strList[11]);
 

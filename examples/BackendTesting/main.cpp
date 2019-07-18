@@ -12,14 +12,14 @@
 #include "rtabmap/core/Parameters.h"
 
 
-int main(){
+int main(int argc, char *argv[]){ //
 
     /* Set logger type */
     ULogger::setType(ULogger::kTypeConsole);
     ULogger::setLevel(ULogger::kDebug);
 
 
-    const std::string & path = "/home/amber/pose_dataset/test_rtabmap_backend/manhattan_with_outlier.g2o";
+    const std::string & path = argv[1];//"/home/amber/pose_dataset/test_rtabmap_backend/manhattanOlson3500.g2o"; //
     int format_local = 4; // 0=Raw, 1=RGBD-SLAM motion capture (10=without change of coordinate frame), 2=KITTI, 3=TORO, 4=g2o, 5=NewCollege(t,x,y), 6=Malaga Urban GPS, 7=St Lucia INS, 8=Karlsruhe
     std::map<int, rtabmap::Transform> poses;
     std::multimap<int, rtabmap::Link>  constraints;
@@ -50,19 +50,17 @@ int main(){
         //optimize
         std::map<int, rtabmap::Transform> posesOut;
         std::multimap<int, rtabmap::Link> linksOut;
-        std::cout<<"Get connected graph"<<std::endl;
 
+        std::cout<<"Get connected graph"<<std::endl;
         optimizer->getConnectedGraph(poses.rbegin()->first, poses, constraints, posesOut, linksOut);
 
         std::map<int, rtabmap::Transform> finalPoses;
         std::list<std::map<int, rtabmap::Transform>> intermediateGraphes; // TODO_LOCAL: maybe write a visualization code using this variable
-                                                                           // use opengl/qt5 as the way g2o_viewer did
-        finalPoses = optimizer->optimize(posesOut.begin()->first, posesOut, linksOut, &intermediateGraphes);
 
-
+        finalPoses = optimizer->optimize(posesOut.rbegin()->first, posesOut, linksOut, &intermediateGraphes);
 
         //save the final poses to a file
-        std::string export_path = "/home/amber/pose_dataset/manhattan_output.g2o";
+        std::string export_path = "/home/amber/pose_dataset/output.g2o";
         std::map<int, double> stamps;
         if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, linksOut, stamps, configParameters))
         {

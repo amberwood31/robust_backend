@@ -420,7 +420,9 @@ std::map<int, Transform> OptimizerG2O::optimize(
 			UASSERT_MSG(optimizer.addVertex(vertex), uFormat("cannot insert vertex %d!?", iter->first).c_str());
 		}
 
-		UDEBUG("fill edges to g2o...");
+        UDEBUG("%d poses added", poses.size());
+
+        UDEBUG("fill edges to g2o...");
 #if defined(RTABMAP_VERTIGO)
 		int vertigoVertexId = landmarkVertexOffset - (poses.begin()->first<0?poses.begin()->first-1:0);
 #endif
@@ -797,7 +799,13 @@ std::map<int, Transform> OptimizerG2O::optimize(
 
 		}
 
-		UDEBUG("Initial optimization...");
+        UDEBUG("%d edges added", edgeConstraints.size());
+		std::ofstream outputFile("vertex.txt");
+		optimizer.vertex(1045)->write(outputFile);
+		outputFile.close();
+
+
+        UDEBUG("Initial optimization...");
 		optimizer.initializeOptimization();
 
 		UASSERT_MSG(optimizer.verifyInformationMatrices(true),
@@ -810,6 +818,7 @@ std::map<int, Transform> OptimizerG2O::optimize(
 				"this is causing Eigen to not work properly, resulting in segmentation faults).");
 
 		UINFO("g2o optimizing begin (max iterations=%d, robust=%d)", iterations(), isRobust()?1:0);
+
 		int it = 0;
 		UTimer timer;
 		double lastError = 0.0;
@@ -965,6 +974,7 @@ std::map<int, Transform> OptimizerG2O::optimize(
 			it = optimizer.optimize(iterations());
 			optimizer.computeActiveErrors();
 			UDEBUG("%d nodes, %d edges, chi2: %f", (int)optimizer.vertices().size(), (int)optimizer.edges().size(), optimizer.activeRobustChi2());
+            std::cout<< optimizer.vertex(3500) << std::endl;
 		}
 		if(finalError)
 		{
@@ -1387,7 +1397,8 @@ std::map<int, Transform> OptimizerG2O::optimizeBA(
 			}
 		}
 
-		UDEBUG("fill edges to g2o...");
+        UDEBUG("fill edges to g2o...");
+
 		for(std::multimap<int, Link>::const_iterator iter=links.begin(); iter!=links.end(); ++iter)
 		{
 			if(iter->second.from() > 0 &&
@@ -1481,7 +1492,7 @@ std::map<int, Transform> OptimizerG2O::optimizeBA(
 			}
 		}
 
-		UDEBUG("fill 3D points to g2o...");
+        UDEBUG("fill 3D points to g2o...");
 		const int stepVertexId = poses.rbegin()->first+1;
 		int negVertexOffset = stepVertexId;
 		if(wordReferences.size() && wordReferences.rbegin()->first>0)
@@ -1912,10 +1923,14 @@ bool OptimizerG2O::loadGraph(
                 cv::Mat informationMatrix(6,6,CV_64FC1);
                 informationMatrix.at<double>(0,0) = uStr2Float(strList[6]);
                 informationMatrix.at<double>(0,1) = uStr2Float(strList[7]);
+                informationMatrix.at<double>(1,0) = informationMatrix.at<double>(0,1);
+
                 informationMatrix.at<double>(0,5) = uStr2Float(strList[8]);
+                informationMatrix.at<double>(5,0) = informationMatrix.at<double>(0,5);
 
                 informationMatrix.at<double>(1,1) = uStr2Float(strList[9]);
                 informationMatrix.at<double>(1,5) = uStr2Float(strList[10]);
+                informationMatrix.at<double>(5,1) = informationMatrix.at<double>(1,5);
 
                 informationMatrix.at<double>(5,5) = uStr2Float(strList[11]);
 
