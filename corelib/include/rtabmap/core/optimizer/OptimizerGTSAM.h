@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtsam/slam/dataset.h> // to read g2o file
 
+#include <rtabmap/core/optimizer/cluster_utils.h> // for clustering
+
 
 namespace rtabmap {
 

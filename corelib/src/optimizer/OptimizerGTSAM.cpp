@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <rtabmap/core/optimizer/OptimizerGTSAM.h>
 
+
 #ifdef RTABMAP_GTSAM
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/geometry/Pose3.h>
@@ -212,6 +213,12 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 			}
 		}
         UDEBUG("%d poses in initialEstimate variable", initialEstimate.size());
+
+
+
+        IntPairSet loops; // variable to store the loop closures and be used in clustering
+        std::map<int, IntPair> loops_map; // key: switchCounter, value: IntPair
+
 
 		UDEBUG("fill edges to gtsam...");
 		int switchCounter = poses.rbegin()->first+1;
@@ -400,6 +407,8 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 					//  outliers."
 					gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
 					graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+
+
 				}
 #endif
 
@@ -428,8 +437,12 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 					   iter->second.type()!=Link::kNeighbor &&
 					   iter->second.type() != Link::kNeighborMerged)
 					{
+                        loops.insert(IntPair(id1, id2));
+                        loops_map.insert(std::pair<int, IntPair>(switchCounter, IntPair(id1, id2)));
+
 						// create switchable edge factor
 						graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+
 					}
 					else
 #endif
@@ -470,6 +483,14 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 		}
 
 		UDEBUG("%d switch vertex has been added", switchCounter- poses.size() -1);
+
+        UDEBUG("clustering...");//
+        Clusterizer clusterizer;
+        std::cout << "Number of Loop closures found: " << loops.size() << std::endl;
+        clusterizer.clusterize(loops, 10); // 10 being the threshold
+        clusterizer.getClusterByID(0); // just to enable inline method usage inside gdb
+        // TODO_LOCAL: might need to change implementation of getClusterByID so switchCounter is embedded in the Cluster structure
+        std::cout << "Number of Clusters found : " <<clusterizer.clusterCount()<< std::endl;
 
 		UDEBUG("create optimizer");
 
