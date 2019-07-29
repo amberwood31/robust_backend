@@ -608,7 +608,7 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
              */
             lastError = error;
             std::cout << "Optimization results: " << std::endl;
-            optimizer->values().print(); // print final optimized values
+            optimizer->values().print(); // print optimized values to get switch variable value
 
 		}
 		if(finalError)

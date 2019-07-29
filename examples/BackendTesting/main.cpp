@@ -2,14 +2,9 @@
 // Created by amber on 25/06/19.
 //
 
-#include "rtabmap/core/Graph.h"
-#include "rtabmap/core/Transform.h"
-#include "rtabmap/core/optimizer/OptimizerGTSAM.h"
-#include "rtabmap/core/Optimizer.h"
-#include "rtabmap/core/Rtabmap.h"
-#include <rtabmap/utilite/UStl.h>
-#include "rtabmap/core/Link.h"
-#include "rtabmap/core/Parameters.h"
+
+#include "utils.h"
+
 
 
 int main(int argc, char *argv[]){ //
@@ -57,6 +52,14 @@ int main(int argc, char *argv[]){ //
         std::map<int, rtabmap::Transform> finalPoses;
         std::list<std::map<int, rtabmap::Transform>> intermediateGraphes; // TODO_LOCAL: maybe write a visualization code using this variable
 
+        Clusterizer clusterizer;
+        IntPairSet loops;
+        getLoopClosures(linksOut, loops);
+        std::cout << "Number of Loop closures found: " << loops.size() << std::endl;
+        clusterizer.clusterize(loops, std::stoi(argv[2]));
+        std::cout << "Number of Clusters found : " <<clusterizer.clusterCount()<< std::endl;
+
+
         finalPoses = optimizer->optimize(posesOut.rbegin()->first, posesOut, linksOut, &intermediateGraphes);
 
         //save the final poses to a file
@@ -80,6 +83,28 @@ int main(int argc, char *argv[]){ //
     return 0;
 
 }
+
+bool getLoopClosures(const std::multimap<int, rtabmap::Link>& linksIn, IntPairSet& loops)
+{
+    for (std::multimap<int, rtabmap::Link>::const_iterator iter=linksIn.begin(); iter != linksIn.end(); ++iter)
+    {
+        int id1 = iter->second.from();
+        int id2 = iter->second.to();
+        if (id1 != id2)
+        {
+            if (iter->second.type() != rtabmap::Link::kNeighbor &&
+                iter->second.type() != rtabmap::Link::kNeighborMerged)
+            {
+                loops.insert(IntPair(id1, id2));
+            }
+        }
+    }
+
+    return true;
+
+}
+
+
 
 
 
