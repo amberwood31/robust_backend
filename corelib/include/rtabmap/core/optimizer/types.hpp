@@ -24,6 +24,8 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// Modified by F.Wu, 2019
+
 
 #ifndef TYPES_HPP_
 #define TYPES_HPP_
@@ -43,6 +45,12 @@
 	typedef std::vector<int>				IntVector;
 	typedef std::set<int>					IntSet;
 	typedef std::map < IntPair, double >    IntPairDoubleMap;
+
+
+    typedef std::pair< int, IntPair>        IDintPairPair;
+    typedef std::set< IDintPairPair>        IDintPairPairSet;
+	typedef std::map< int, IDintPairPairSet>    ID_IDintPairPairSet_Map;
+	typedef std::map< IDintPairPair, int>    IDintPairPair_ID_Map;
 
 
 #endif /* TYPES_HPP_ */

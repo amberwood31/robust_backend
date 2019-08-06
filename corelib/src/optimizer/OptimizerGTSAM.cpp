@@ -32,6 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/utilite/UConversion.h>
 #include <rtabmap/utilite/UTimer.h>
 #include <set>
+#include <iterator>     // std::advance
+
 
 #include <rtabmap/core/optimizer/OptimizerGTSAM.h>
 
@@ -61,8 +63,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vertigo/gtsam/betweenFactorSwitchable.h"
 #include "vertigo/gtsam/switchVariableLinear.h"
 #include "vertigo/gtsam/switchVariableSigmoid.h"
+
+#include "vertigo/gtsam/betweenFactorSqueezeSwitchable.h"
 #endif
 #endif // end RTABMAP_GTSAM
+
+
 
 namespace rtabmap {
 
@@ -81,7 +87,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 	Parameters::parse(parameters, Parameters::kGTSAMOptimizer(), optimizer_);
 }
 
-std::map<int, Transform> OptimizerGTSAM::optimize(
+
+    std::map<int, Transform> OptimizerGTSAM::optimize(
 		int rootId,
 		const std::map<int, Transform> & poses,
 		const std::multimap<int, Link> & edgeConstraints,
@@ -217,7 +224,7 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 
 
         IntPairSet loops; // variable to store the loop closures and be used in clustering
-        std::map<int, IntPair> loops_map; // key: switchCounter, value: IntPair
+        IDintPairMap loops_map; // key: switchCounter, value: IntPair
 
 
 		UDEBUG("fill edges to gtsam...");
@@ -397,19 +404,24 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 					// "Since it is reasonable to initially accept all loop closure constraints,
 					//  a proper and convenient initial value for all switch variables would be
 					//  sij = 1 when using the linear switch function"
-					double prior = 1.0;
-					initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));
 
+					/*double prior = 1.0;
+					initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));*/
+					double prior = 10.0;
+					initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
 					// create switch prior factor
 					// "If the front-end is not able to assign sound individual values
 					//  for Ξij , it is save to set all Ξij = 1, since this value is close
 					//  to the individual optimal choice of Ξij for a large range of
 					//  outliers."
-					gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
+
+				/*	gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
 					graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+*/
+                    gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
+                    graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
 
-
-				}
+                }
 #endif
 
 				if(isSlam2d())
@@ -441,7 +453,8 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
                         loops_map.insert(std::pair<int, IntPair>(switchCounter, IntPair(id1, id2)));
 
 						// create switchable edge factor
-						graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+						//graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+                        graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
 
 					}
 					else
@@ -486,11 +499,38 @@ std::map<int, Transform> OptimizerGTSAM::optimize(
 
         UDEBUG("clustering...");//
         Clusterizer clusterizer;
-        std::cout << "Number of Loop closures found: " << loops.size() << std::endl;
-        clusterizer.clusterize(loops, 10); // 10 being the threshold
-        clusterizer.getClusterByID(0); // just to enable inline method usage inside gdb
-        // TODO_LOCAL: might need to change implementation of getClusterByID so switchCounter is embedded in the Cluster structure
+        std::cout << "Number of Loop closures found: " << loops_map.size() << std::endl; // TODO_LOCAL: loops.size() gives a wrong value, maybe due to set?
+        clusterizer.clusterize(loops_map, threshold); // 10 being the threshold
+        clusterizer.getClusterByID_new(0); // just to enable inline method usage inside gdb
         std::cout << "Number of Clusters found : " <<clusterizer.clusterCount()<< std::endl;
+
+
+        UDEBUG("Add New between factors");
+
+        for (size_t i = 0; i < clusterizer.clusterCount(); i++)
+        {
+            IDintPairPairSet loops_incluster = clusterizer.getClusterByID_new(i);
+            IDintPairPairSet::const_iterator last = loops_incluster.end();
+            --last;
+            for (IDintPairPairSet::const_iterator iter = loops_incluster.begin(); iter != last; ++iter)
+            {
+                int switchVariable_first_ID = iter->first;
+                ++iter;
+
+                int switchVariable_second_ID = iter->first;
+
+                /*gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(4.0));
+
+                graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+                */
+
+                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
+                graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+
+                --iter;
+            }
+        }
 
 		UDEBUG("create optimizer");
 

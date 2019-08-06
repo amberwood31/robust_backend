@@ -59,10 +59,14 @@ class Clusterizer
 {
 	typedef IntPairIDMap 			LoopToClusterIDMap;
 	typedef IDintPairSetMap 		ClusterIDtoLoopsMap;
+	typedef ID_IDintPairPairSet_Map  ClusterIDtoLoopMapsMap;
+	typedef IDintPairPair_ID_Map     LoopMapToClusterIDMap;
 
 	std::vector<cluster> _clustersFound;
 	ClusterIDtoLoopsMap	clusterIDtoLoopsMap;
 	LoopToClusterIDMap  loopToClusterIDMap;
+	ClusterIDtoLoopMapsMap clusterIDtoLoopMapsMap;
+	LoopMapToClusterIDMap loopMapToClusterIdMap;
 
 public:
 	// Assumes that in the vector the values are passed as (start_1,end_1), (start_2,end_2), ...
@@ -97,27 +101,29 @@ public:
 		}
 	}
 
-	void clusterize( const IntPairSet& loops , const int threshold)//, std::vector<int>& membership, int& clusterCount)
+	void clusterize( IDintPairMap& loops_map,  const int threshold)// original 1st variable: const IntPairSet& loops,
 	{
-		if(loops.empty())
+		if(loops_map.empty())
 		{
 			std::cerr<<"clusterize(): "<<__LINE__<<" no loops to make clusters"<<std::endl;
 			return;
 		}
 		_clustersFound.clear();
-		for(IntPairSet::const_iterator it = loops.begin(), lend = loops.end();
+		for(IDintPairMap::const_iterator it = loops_map.begin(), lend = loops_map.end();
 				it!=lend;
 				it++)
 		{
-			int start 	= std::max(it->first,it->second);
-			int end 	= std::min(it->first,it->second);
+			int start 	= std::max(it->second.first,it->second.second);
+			int end 	= std::min(it->second.first,it->second.second);
 
 			if(_clustersFound.empty())
 			{
 				cluster s(start,end);
 				_clustersFound.push_back(s);
-				clusterIDtoLoopsMap[_clustersFound.size()-1].insert(*it);
-				loopToClusterIDMap[*it] = _clustersFound.size()-1;
+				//clusterIDtoLoopsMap[_clustersFound.size()-1].insert(*it);
+				//loopToClusterIDMap[*it] = _clustersFound.size()-1;
+				clusterIDtoLoopMapsMap[_clustersFound.size()-1].insert(*it);
+				loopMapToClusterIdMap[*it] = _clustersFound.size()-1;
 			}
 			else
 			{
@@ -130,8 +136,11 @@ public:
 						currentCluster = &_clustersFound[i];
 						currentCluster->size++;
 						//membership.push_back(i);
-						clusterIDtoLoopsMap[i].insert(*it);
-						loopToClusterIDMap[*it] = i;
+						//clusterIDtoLoopsMap[i].insert(*it);
+						//loopToClusterIDMap[*it] = i;
+						clusterIDtoLoopMapsMap[i].insert(*it);
+						loopMapToClusterIdMap[*it] = i;
+
 
 						if(start<currentCluster->startLow)	currentCluster->startLow = start;
 						if(start>currentCluster->startHigh)	currentCluster->startHigh = start;
@@ -147,8 +156,10 @@ public:
 					cluster s(start,end);
 					_clustersFound.push_back(s);
 					//membership.push_back(_clustersFound.size()-1);
-					clusterIDtoLoopsMap[_clustersFound.size()-1].insert(*it);
-					loopToClusterIDMap[*it] = _clustersFound.size()-1;
+					//clusterIDtoLoopsMap[_clustersFound.size()-1].insert(*it);
+					//loopToClusterIDMap[*it] = _clustersFound.size()-1;
+					clusterIDtoLoopMapsMap[_clustersFound.size()-1].insert(*it);
+					loopMapToClusterIdMap[*it] = _clustersFound.size()-1;
 				}
 			}
 
@@ -184,6 +195,10 @@ public:
 
 	IntPairSet& getClusterByID(int id){
 		return clusterIDtoLoopsMap[id];
+	}
+
+    IDintPairPairSet& getClusterByID_new(int id){
+	    return clusterIDtoLoopMapsMap[id];
 	}
 
 	size_t clusterCount()

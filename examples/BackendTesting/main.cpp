@@ -47,22 +47,15 @@ int main(int argc, char *argv[]){ //
         rtabmap::Optimizer * optimizer = rtabmap::Optimizer::create(configParameters);
 
         //optimize
-        std::map<int, rtabmap::Transform> posesOut;
-        std::multimap<int, rtabmap::Link> linksOut;
-
-        std::cout<<"Get connected graph"<<std::endl;
-        optimizer->getConnectedGraph(poses.rbegin()->first, poses, constraints, posesOut, linksOut);
-
         std::map<int, rtabmap::Transform> finalPoses;
         std::list<std::map<int, rtabmap::Transform>> intermediateGraphes; // TODO_LOCAL: maybe write a visualization code using this variable
 
-
-        finalPoses = optimizer->optimize(posesOut.rbegin()->first, posesOut, linksOut, &intermediateGraphes);
+        finalPoses = optimizer->optimize(poses.begin()->first, poses, constraints, &intermediateGraphes);
 
         //save the final poses to a file
-        std::string export_path = "/home/amber/pose_dataset/output.g2o";
+        std::string export_path = "/home/amber/rtabmap/bin/output.g2o";
         std::map<int, double> stamps;
-        if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, linksOut, stamps, configParameters))
+        if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, constraints, stamps, configParameters))
         {
             std::cout << "Export poses successfully"<< std::endl;
         } else
