@@ -55,9 +55,19 @@ namespace vertigo {
 
             // manifold equivalent of z-x -> Local(x,z)
 
-            return -traits<SwitchVariableSigmoid>::Local(s1, s2);
+            //return -traits<SwitchVariableSigmoid>::Local(s1, s2);
+
+            gtsam::Vector error = gtsam::Vector1(1.0);
+            error *= sigmoid(s1.value())- sigmoid(s2.value()) ;
+            return error;
 
         };
+
+    private:
+
+        double sigmoid(double x) const {
+            return 1.0/(1.0+exp(-x));
+        }
 
 
 

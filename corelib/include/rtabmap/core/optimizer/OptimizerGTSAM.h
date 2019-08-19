@@ -43,7 +43,7 @@ class RTABMAP_EXP OptimizerGTSAM : public Optimizer
 {
 public:
 	static bool available();
-    static const int threshold = 100;
+    static const int threshold = 10;
 
 
 public:

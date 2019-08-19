@@ -394,35 +394,38 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 			}
 			else // id1 != id2
 			{
+
 #ifdef RTABMAP_VERTIGO
-				if(this->isRobust() &&
-				   iter->second.type() != Link::kNeighbor &&
-				   iter->second.type() != Link::kNeighborMerged)
-				{
-					// create new switch variable
-					// Sunderhauf IROS 2012:
-					// "Since it is reasonable to initially accept all loop closure constraints,
-					//  a proper and convenient initial value for all switch variables would be
-					//  sij = 1 when using the linear switch function"
+                if(this->isRobust() &&
+                   iter->second.type() != Link::kNeighbor &&
+                   iter->second.type() != Link::kNeighborMerged)
+                {
+                    // create new switch variable
+                    // Sunderhauf IROS 2012:
+                    // "Since it is reasonable to initially accept all loop closure constraints,
+                    //  a proper and convenient initial value for all switch variables would be
+                    //  sij = 1 when using the linear switch function"
 
-					/*double prior = 1.0;
-					initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));*/
-					double prior = 10.0;
-					initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
-					// create switch prior factor
-					// "If the front-end is not able to assign sound individual values
-					//  for Ξij , it is save to set all Ξij = 1, since this value is close
-					//  to the individual optimal choice of Ξij for a large range of
-					//  outliers."
+                    //double prior = 1.0;
+                    //initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));
+                    double prior = 10.0;
+                    initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
 
-				/*	gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
-					graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
-*/
+                    // create switch prior factor
+                    // "If the front-end is not able to assign sound individual values
+                    //  for Ξij , it is save to set all Ξij = 1, since this value is close
+                    //  to the individual optimal choice of Ξij for a large range of
+                    //  outliers."
+
+                    //gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
+                    //graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+
                     gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
                     graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
 
                 }
 #endif
+
 
 				if(isSlam2d())
 				{
@@ -483,8 +486,12 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 					   iter->second.type() != Link::kNeighbor &&
 					   iter->second.type() != Link::kNeighborMerged)
 					{
+                        loops.insert(IntPair(id1, id2));
+                        loops_map.insert(std::pair<int, IntPair>(switchCounter, IntPair(id1, id2)));
+
 						// create switchable edge factor
-						graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+						//graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+					    graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
 					}
 					else
 #endif
@@ -512,6 +519,10 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
             IDintPairPairSet loops_incluster = clusterizer.getClusterByID_new(i);
             IDintPairPairSet::const_iterator last = loops_incluster.end();
             --last;
+
+            // Todo_local: change the prior value depending on edges' spatial distribution
+
+
             for (IDintPairPairSet::const_iterator iter = loops_incluster.begin(); iter != last; ++iter)
             {
                 int switchVariable_first_ID = iter->first;
@@ -519,10 +530,10 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
                 int switchVariable_second_ID = iter->first;
 
-                /*gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(4.0));
+                //gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(4.0));
 
-                graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
-                */
+                //graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
 
                 gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
                 graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
@@ -530,6 +541,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
                 --iter;
             }
+
+
         }
 
 		UDEBUG("create optimizer");
@@ -559,6 +572,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		}
 
 		UDEBUG("GTSAM optimizing begin (max iterations=%d, robust=%d)", iterations(), isRobust()?1:0);
+        std::cout << "Initial estimation: " << std::endl;
+        initialEstimate.print(); // print initial estimation
 		UTimer timer;
 		int it = 0;
 		double lastError = optimizer->error();
@@ -824,17 +839,18 @@ bool OptimizerGTSAM::loadGraph(
         while ( fgets (line , 400 , file) != NULL )
         {
             std::vector<std::string> strList = uListToVector(uSplit(uReplaceChar(line, '\n', ' '), ' '));
-            if(strList.size() == 8)
+            if(strList.size() == 9)
             {
-                //VERTEX_SE3
+                //VERTEX_SE3:QUAT
                 int id = atoi(strList[1].c_str());
                 float x = uStr2Float(strList[2]);
                 float y = uStr2Float(strList[3]);
                 float z = uStr2Float(strList[4]);
-                float roll = uStr2Float(strList[5]);
-                float pitch = uStr2Float(strList[6]);
-                float yaw = uStr2Float(strList[7]);
-                Transform pose(x, y, z, roll, pitch, yaw);
+                float qx = uStr2Float(strList[5]);
+                float qy = uStr2Float(strList[6]);
+                float qz = uStr2Float(strList[7]);
+                float qw = uStr2Float(strList[8]);
+                Transform pose(x, y, z, qx, qy, qz, qw);
                 if(poses.find(id) == poses.end())
                 {
                     poses.insert(std::make_pair(id, pose));
@@ -862,50 +878,56 @@ bool OptimizerGTSAM::loadGraph(
                 }
 
             }
-            else if(strList.size() == 30)
+            else if(strList.size() == 31)
             {
-                //EDGE_SE3
+                //EDGE_SE3:QUAT
                 int idFrom = atoi(strList[1].c_str());
                 int idTo = atoi(strList[2].c_str());
                 float x = uStr2Float(strList[3]);
                 float y = uStr2Float(strList[4]);
                 float z = uStr2Float(strList[5]);
-                float roll = uStr2Float(strList[6]);
-                float pitch = uStr2Float(strList[7]);
-                float yaw = uStr2Float(strList[8]);
+                float qx = uStr2Float(strList[6]);
+                float qy = uStr2Float(strList[7]);
+                float qz = uStr2Float(strList[8]);
+                float qw = uStr2Float(strList[9]);
                 cv::Mat informationMatrix(6,6,CV_64FC1);
-                informationMatrix.at<double>(0,0) = uStr2Float(strList[9]);
-                informationMatrix.at<double>(0,1) = uStr2Float(strList[10]);
-                informationMatrix.at<double>(0,2) = uStr2Float(strList[11]);
-                informationMatrix.at<double>(0,3) = uStr2Float(strList[12]);
-                informationMatrix.at<double>(0,4) = uStr2Float(strList[13]);
-                informationMatrix.at<double>(0,5) = uStr2Float(strList[14]);
+                informationMatrix.at<double>(0,0) = uStr2Float(strList[10]);
+                informationMatrix.at<double>(0,1) = uStr2Float(strList[11]);
+                informationMatrix.at<double>(0,2) = uStr2Float(strList[12]);
+                informationMatrix.at<double>(0,3) = uStr2Float(strList[13]);
+                informationMatrix.at<double>(0,4) = uStr2Float(strList[14]);
+                informationMatrix.at<double>(0,5) = uStr2Float(strList[15]);
 
-                informationMatrix.at<double>(1,1) = uStr2Float(strList[15]);
-                informationMatrix.at<double>(1,2) = uStr2Float(strList[16]);
-                informationMatrix.at<double>(1,3) = uStr2Float(strList[17]);
-                informationMatrix.at<double>(1,4) = uStr2Float(strList[18]);
-                informationMatrix.at<double>(1,5) = uStr2Float(strList[19]);
+                informationMatrix.at<double>(1,1) = uStr2Float(strList[16]);
+                informationMatrix.at<double>(1,2) = uStr2Float(strList[17]);
+                informationMatrix.at<double>(1,3) = uStr2Float(strList[18]);
+                informationMatrix.at<double>(1,4) = uStr2Float(strList[19]);
+                informationMatrix.at<double>(1,5) = uStr2Float(strList[20]);
 
-                informationMatrix.at<double>(2,2) = uStr2Float(strList[20]);
-                informationMatrix.at<double>(2,3) = uStr2Float(strList[21]);
-                informationMatrix.at<double>(2,4) = uStr2Float(strList[22]);
-                informationMatrix.at<double>(2,5) = uStr2Float(strList[23]);
+                informationMatrix.at<double>(2,2) = uStr2Float(strList[21]);
+                informationMatrix.at<double>(2,3) = uStr2Float(strList[22]);
+                informationMatrix.at<double>(2,4) = uStr2Float(strList[23]);
+                informationMatrix.at<double>(2,5) = uStr2Float(strList[24]);
 
-                informationMatrix.at<double>(3,3) = uStr2Float(strList[24]);
-                informationMatrix.at<double>(3,4) = uStr2Float(strList[25]);
-                informationMatrix.at<double>(3,5) = uStr2Float(strList[26]);
+                informationMatrix.at<double>(3,3) = uStr2Float(strList[25]);
+                informationMatrix.at<double>(3,4) = uStr2Float(strList[26]);
+                informationMatrix.at<double>(3,5) = uStr2Float(strList[27]);
 
-                informationMatrix.at<double>(4,4) = uStr2Float(strList[27]);
-                informationMatrix.at<double>(4,5) = uStr2Float(strList[28]);
+                informationMatrix.at<double>(4,4) = uStr2Float(strList[28]);
+                informationMatrix.at<double>(4,5) = uStr2Float(strList[29]);
 
-                informationMatrix.at<double>(5,5) = uStr2Float(strList[29]);
+                informationMatrix.at<double>(5,5) = uStr2Float(strList[30]);
 
-                Transform transform(x, y, z, roll, pitch, yaw);
+                Transform transform(x, y, z, qx, qy, qz, qw);
                 if(poses.find(idFrom) != poses.end() && poses.find(idTo) != poses.end())
                 {
                     //Link type is unknown
                     Link link(idFrom, idTo, Link::kUndef, transform, informationMatrix);
+                    //Link type is kNeighbor if id is sequential
+                    if ((idTo - idFrom) == 1)
+                    {
+                        link.setType(Link::kNeighbor);
+                    }
                     edgeConstraints.insert(std::pair<int, Link>(idFrom, link));
                 }
                 else
@@ -1024,7 +1046,7 @@ bool OptimizerGTSAM::saveGraph(
                 {
                     // VERTEX_SE2 id x y theta
                     fprintf(file, "VERTEX_SE2 %d %f %f %f\n",
-                            landmarkOffset-iter->first,
+                            iter->first, //landmarkOffset-iter->first, // Todo_local why did rtabmap do landmarkOffset-iter->first here
                             iter->second.x(),
                             iter->second.y(),
                             iter->second.theta());
@@ -1062,6 +1084,7 @@ bool OptimizerGTSAM::saveGraph(
                             iter->second.x(),
                             iter->second.y(),
                             iter->second.z());
+
                 }
             }
         }
