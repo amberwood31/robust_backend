@@ -503,7 +503,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		}
 
 		UDEBUG("%d switch vertex has been added", switchCounter- poses.size() -1);
-
+/*
         UDEBUG("clustering...");//
         Clusterizer clusterizer;
         std::cout << "Number of Loop closures found: " << loops_map.size() << std::endl; // TODO_LOCAL: loops.size() gives a wrong value, maybe due to set?
@@ -544,7 +544,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 
         }
-
+*/
 		UDEBUG("create optimizer");
 
 		gtsam::NonlinearOptimizer * optimizer;
