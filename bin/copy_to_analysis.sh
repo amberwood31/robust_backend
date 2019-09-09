@@ -1,2 +1,2 @@
-cp output.* poses_transition_* ../../pose_dataset/test_rtabmap_backend/analysis_chamber/
+cp output.* poses_transition_* /home/amber/stew/test_backend/analysis_chamber/
 

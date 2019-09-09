@@ -37,14 +37,14 @@ namespace vertigo {
 
           // calculate error
           gtsam::Vector error = betweenFactor.evaluateError(p1, p2, H1, H2);
-          error *= s.value();
+          gtsam::Vector error_scaled = error * s.value();
 
           // handle derivatives
           if (H1) *H1 = *H1 * s.value();
           if (H2) *H2 = *H2 * s.value();
           if (H3) *H3 = error;
 
-          return error;
+          return error_scaled;
         };
 
     private:
@@ -79,7 +79,7 @@ namespace vertigo {
         // handle derivatives
         if (H1) *H1 = *H1 * w;
         if (H2) *H2 = *H2 * w;
-        if (H3) *H3 = error /* (w*(1.0-w))*/;  // sig(x)*(1-sig(x)) is the derivative of sig(x) wrt. x
+        if (H3) *H3 = error*(1.0-w) /* (w*(1.0-w))*/;  // sig(x)*(1-sig(x)) is the derivative of sig(x) wrt. x
 
         return error;
       };
