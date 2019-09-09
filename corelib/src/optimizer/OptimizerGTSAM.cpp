@@ -85,7 +85,9 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 {
 	Optimizer::parseParameters(parameters);
 	Parameters::parse(parameters, Parameters::kGTSAMOptimizer(), optimizer_);
-	Parameters::parse(parameters, Parameters::kGTSAMSCS(), scs_);
+	Parameters::parse(parameters, Parameters::kSCSStatus(), scs_);
+	Parameters::parse(parameters, Parameters::kSCSPenalty(), penalty_);
+	Parameters::parse(parameters, Parameters::kSCSThreshold(), threshold_);
 }
 
 
@@ -235,7 +237,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
             if(clustering_analysis_file)
             {
-                clusterizer.clusterize(clustering_analysis_file, 0.001); // 0.001 being the threshold
+                clusterizer.clusterize(clustering_analysis_file, threshold_); // 0.001 being the default value
             }
             fclose(clustering_analysis_file);
 
@@ -471,7 +473,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                         }
                         else
                         {
-                            gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0)); // use larger penalty if score is low (good quality)
+                            gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(penalty_)); // use larger penalty if score is low (good quality)
                             graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
 
 

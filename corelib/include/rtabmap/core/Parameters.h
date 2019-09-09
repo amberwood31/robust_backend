@@ -403,7 +403,10 @@ class RTABMAP_EXP Parameters
     RTABMAP_PARAM(g2o, Baseline,          double, 0.075,   "When doing bundle adjustment with RGB-D data, we can set a fake baseline (m) to do stereo bundle adjustment (if 0, mono bundle adjustment is done). For stereo data, the baseline in the calibration is used directly.");
 
     RTABMAP_PARAM(GTSAM, Optimizer,       int, 1,          "0=Levenberg 1=GaussNewton 2=Dogleg");
-    RTABMAP_PARAM(GTSAM, SCS,             bool,true,                        "this switchs on the squeezing consistant switchable code");
+
+    RTABMAP_PARAM(SCS, Status,             bool,true,       "this switchs on the squeezing consistant switchable code");
+    RTABMAP_PARAM(SCS, Penalty,            float,20.0,                                 "increase penalty for potential good measurements");
+    RTABMAP_PARAM(SCS, Threshold,          float,0.001,                       "threshold for clustering");
 
     // Odometry
     RTABMAP_PARAM(Odom, Strategy,               int, 0,       "0=Frame-to-Map (F2M) 1=Frame-to-Frame (F2F) 2=Fovis 3=viso2 4=DVO-SLAM 5=ORB_SLAM2 6=OKVIS 7=LOAM 8=MSCKF_VIO");

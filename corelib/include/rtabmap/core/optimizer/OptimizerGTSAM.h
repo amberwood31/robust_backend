@@ -83,6 +83,8 @@ public:
 private:
 	int optimizer_;
 	bool scs_;
+	float penalty_;
+	float threshold_;
 };
 
 } /* namespace rtabmap */
