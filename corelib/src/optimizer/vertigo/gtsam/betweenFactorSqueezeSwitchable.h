@@ -49,16 +49,19 @@ namespace vertigo {
                                     boost::optional<gtsam::Matrix&> H1 = boost::none,
                                     boost::optional<gtsam::Matrix&> H2 = boost::none) const
         {
+            double w1 = sigmoid(s1.value());
+            double w2 = sigmoid(s2.value());
+            /* (w*(1.0-w))*/;  // sig(x)*(1-sig(x)) is the derivative of sig(x) wrt. x
 
-            if (H1) (*H1) = Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s1),traits<SwitchVariableSigmoid>::GetDimension(s1));
-            if (H2) (*H2) = -1.0 * Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s2),traits<SwitchVariableSigmoid>::GetDimension(s2));
+            if (H1) (*H1) = (w1*(1.0-w1)) * Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s1),traits<SwitchVariableSigmoid>::GetDimension(s1));
+            if (H2) (*H2) = -1.0 * (w2*(1.0-w2)) * Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s2),traits<SwitchVariableSigmoid>::GetDimension(s2));
 
             // manifold equivalent of z-x -> Local(x,z)
 
             //return -traits<SwitchVariableSigmoid>::Local(s1, s2);
 
             gtsam::Vector error = gtsam::Vector1(1.0);
-            error *= sigmoid(s1.value())- sigmoid(s2.value()) ;
+            error *= w1- w2 ;
             return error;
 
         };

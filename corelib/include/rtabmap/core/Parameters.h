@@ -407,6 +407,7 @@ class RTABMAP_EXP Parameters
     RTABMAP_PARAM(SCS, Status,             bool,true,       "this switchs on the squeezing consistant switchable code");
     RTABMAP_PARAM(SCS, Penalty,            float,20.0,                                 "increase penalty for potential good measurements");
     RTABMAP_PARAM(SCS, Threshold,          float,0.001,                       "threshold for clustering");
+    RTABMAP_PARAM(SCS, Sigmoid,            bool,true,         "if true, use switchablesigmoid; if false, use switchablelinear");
 
     // Odometry
     RTABMAP_PARAM(Odom, Strategy,               int, 0,       "0=Frame-to-Map (F2M) 1=Frame-to-Frame (F2F) 2=Fovis 3=viso2 4=DVO-SLAM 5=ORB_SLAM2 6=OKVIS 7=LOAM 8=MSCKF_VIO");

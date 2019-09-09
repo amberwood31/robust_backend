@@ -85,6 +85,7 @@ private:
 	bool scs_;
 	float penalty_;
 	float threshold_;
+	bool sigmoid_;
 };
 
 } /* namespace rtabmap */
