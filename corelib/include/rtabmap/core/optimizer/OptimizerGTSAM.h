@@ -82,6 +82,7 @@ public:
 
 private:
 	int optimizer_;
+	bool scs_;
 };
 
 } /* namespace rtabmap */
