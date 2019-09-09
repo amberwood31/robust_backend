@@ -1,28 +1,4 @@
-// RRR - Robust Loop Closing over Time
-// Copyright (C) 2014 Y.Latif, C.Cadena, J.Neira
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-// * Redistributions of source code must retain the above copyright notice,
-//   this list of conditions and the following disclaimer.
-// * Redistributions in binary form must reproduce the above copyright
-//   notice, this list of conditions and the following disclaimer in the
-//   documentation and/or other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-// IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-// TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-// PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-// TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-// NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 #ifndef CLUSTER_HPP_
 #define CLUSTER_HPP_
@@ -31,174 +7,127 @@
 #include <vector>
 #include <cstdlib>
 #include "types.hpp"
+#include <stdio.h>
+#include <rtabmap/utilite/UStl.h>
+
 
 struct cluster
 {
-	int startLow, startHigh;
-	int endLow, endHigh;
+
 	int size;
+	double last_score;
+	double std_score;
+	double mean_score;
 
-	cluster(): startLow(-1), startHigh(-1), endLow(-1), endHigh(-1), size(0) {}
-	cluster(int start, int end) : startLow(start), startHigh(start), endLow(end), endHigh(end), size(1){}
+	cluster():size(0), last_score(-1), std_score(-1), mean_score(-1){}
+    cluster(double score) : size(1), last_score(score), std_score(0), mean_score(score){}
 
-	bool contains(int start, int end, int threshold)
-	{
-		return
-				(
-					std::abs(start-startHigh) < threshold or	std::abs(start-startLow)  < threshold
-				)
-				and
-				(
-					std::abs(end-endHigh) < threshold or std::abs(end-endLow) < threshold
-				);
-
-	}
 };
 
 class Clusterizer
 {
-	typedef IntPairIDMap 			LoopToClusterIDMap;
-	typedef IDintPairSetMap 		ClusterIDtoLoopsMap;
-	typedef ID_IDintPairPairSet_Map  ClusterIDtoLoopMapsMap;
-	typedef IDintPairPair_ID_Map     LoopMapToClusterIDMap;
+	//typedef IntPairIDMap 			LoopwScoreToClusterIDMap;
+	//typedef IDintPairSetMap 		ClusterIDtoLoopsMap;
+	typedef IntPairDoubleMap        LoopToScoreMap;
+	typedef IDintPairDoubleMapMap       ClusterIDtoLoopsMap;
+	typedef IntPairDoubleMapIDMap       LoopwScoreToClusterIDMap;
+	typedef IntPairIDMap                LoopToClusterIDMap;
 
-	std::vector<cluster> _clustersFound;
-	ClusterIDtoLoopsMap	clusterIDtoLoopsMap;
-	LoopToClusterIDMap  loopToClusterIDMap;
-	ClusterIDtoLoopMapsMap clusterIDtoLoopMapsMap;
-	LoopMapToClusterIDMap loopMapToClusterIdMap;
+	std::vector<cluster>                _clustersFound;
+	ClusterIDtoLoopsMap	                clusterIDtoLoopsMap;
+	LoopwScoreToClusterIDMap            loopwScoreToClusterIDMap;
+	LoopToClusterIDMap                  loopToClusterIDMap;
 
 public:
-	// Assumes that in the vector the values are passed as (start_1,end_1), (start_2,end_2), ...
 
-	int getClusterID(const IntPair& loop)
+	void clusterize( FILE* clustering_results,  const double threshold)
 	{
-		return loopToClusterIDMap[loop];
-	}
+	    double alpha = 0.95;
 
-	void setClusterID(const IntPair& loopClosure, int ID)
-	{
-		if(loopToClusterIDMap.find(loopClosure)!=loopToClusterIDMap.end())
+		if(!clustering_results)
 		{
-			int oldID = loopToClusterIDMap[loopClosure];
-
-//			for(IntPairSet::iterator
-//					it = clusterIDtoLoopsMap[oldID].begin(),
-//					end = clusterIDtoLoopsMap[oldID].end();
-//					it!=end;
-//					it++)
-//
-//			{
-				//if (*it == loopClosure){
-					clusterIDtoLoopsMap[oldID].erase(loopClosure);
-				//	loopToClusterIDMap[*it] = ID;
-				//	break;
-				//}
-//			}
-			clusterIDtoLoopsMap[ID].insert(loopClosure);
-			loopToClusterIDMap[loopClosure] = ID;
-
-		}
-	}
-
-	void clusterize( IDintPairMap& loops_map,  const int threshold)// original 1st variable: const IntPairSet& loops,
-	{
-		if(loops_map.empty())
-		{
-			std::cerr<<"clusterize(): "<<__LINE__<<" no loops to make clusters"<<std::endl;
+			std::cerr<<"clusterize(): "<<__LINE__<<" no clustering results to load"<<std::endl;
 			return;
 		}
 		_clustersFound.clear();
-		for(IDintPairMap::const_iterator it = loops_map.begin(), lend = loops_map.end();
-				it!=lend;
-				it++)
+        char line[400];
+        while ( fgets (line , 400 , clustering_results) != NULL )
 		{
-			int start 	= std::max(it->second.first,it->second.second);
-			int end 	= std::min(it->second.first,it->second.second);
+            std::vector<std::string> strList = uListToVector(uSplit(uReplaceChar(line, '\n', ' '), ' '));
+            double new_score = uStr2Double(strList[3]);
+            if (new_score < alpha)
+            {
+                new_score = 0;  //zero the score of all good measurements
+            }
+            IntPair lc_edge(atoi(strList[0].c_str()), atoi(strList[1].c_str()));
+            IntPairDoubleMap lc_edge_with_score;
+            lc_edge_with_score[lc_edge] = new_score;
 
 			if(_clustersFound.empty())
 			{
-				cluster s(start,end);
+				cluster s(new_score); //initialize cluster with the new score
 				_clustersFound.push_back(s);
-				//clusterIDtoLoopsMap[_clustersFound.size()-1].insert(*it);
-				//loopToClusterIDMap[*it] = _clustersFound.size()-1;
-				clusterIDtoLoopMapsMap[_clustersFound.size()-1].insert(*it);
-				loopMapToClusterIdMap[*it] = _clustersFound.size()-1;
+
+                clusterIDtoLoopsMap[_clustersFound.size()-1][lc_edge] = new_score;;
+                loopwScoreToClusterIDMap[lc_edge_with_score] = _clustersFound.size()-1;
+                loopToClusterIDMap[lc_edge] = _clustersFound.size()-1;
+                std::cout<<"cluster begins: " << lc_edge.first << " " << lc_edge.second << std::endl;
 			}
 			else
 			{
 				cluster* currentCluster = NULL;
-				//Search for a cluster where it can belong
-				for(size_t i=0; i<_clustersFound.size(); i++)
+				//check for the last score of last cluster
+
+                if (fabs(_clustersFound.back().last_score - new_score) < threshold)
+                {
+                    currentCluster = &_clustersFound.back();
+                    currentCluster->size++;
+                    currentCluster->last_score = new_score;
+
+                    clusterIDtoLoopsMap[_clustersFound.size()-1][lc_edge] = new_score;;
+                    loopwScoreToClusterIDMap[lc_edge_with_score] = _clustersFound.size()-1;
+                    loopToClusterIDMap[lc_edge] = _clustersFound.size()-1;
+                    IntPairDoubleMap current_cluster_map = clusterIDtoLoopsMap[_clustersFound.size()-1];
+                    double sum = 0;
+                    for (IntPairDoubleMap::iterator it= current_cluster_map.begin();
+                        it != current_cluster_map.end(); it++)
+                    {
+                        sum += it->second;
+                    }
+                    currentCluster->mean_score = sum / current_cluster_map.size();
+
+
+                }
+                else	    // variation in scores exceed the threshold
 				{
-					if(_clustersFound[i].contains(start,end,threshold))
-					{
-						currentCluster = &_clustersFound[i];
-						currentCluster->size++;
-						//membership.push_back(i);
-						//clusterIDtoLoopsMap[i].insert(*it);
-						//loopToClusterIDMap[*it] = i;
-						clusterIDtoLoopMapsMap[i].insert(*it);
-						loopMapToClusterIdMap[*it] = i;
-
-
-						if(start<currentCluster->startLow)	currentCluster->startLow = start;
-						if(start>currentCluster->startHigh)	currentCluster->startHigh = start;
-
-						if(end<currentCluster->endLow) currentCluster->endLow = end;
-						if(end>currentCluster->endHigh) currentCluster->endHigh = end;
-
-						break;
-					}
-				}
-				if(currentCluster == NULL) // Does not belong to any existing cluster.
-				{
-					cluster s(start,end);
+					cluster s(new_score);
 					_clustersFound.push_back(s);
-					//membership.push_back(_clustersFound.size()-1);
-					//clusterIDtoLoopsMap[_clustersFound.size()-1].insert(*it);
-					//loopToClusterIDMap[*it] = _clustersFound.size()-1;
-					clusterIDtoLoopMapsMap[_clustersFound.size()-1].insert(*it);
-					loopMapToClusterIdMap[*it] = _clustersFound.size()-1;
+
+                    clusterIDtoLoopsMap[_clustersFound.size()-1][lc_edge] = new_score;;
+                    loopwScoreToClusterIDMap[lc_edge_with_score] = _clustersFound.size()-1;
+                    loopToClusterIDMap[lc_edge] = _clustersFound.size()-1;
+                    std::cout<<"cluster begins: " << lc_edge.first << " " << lc_edge.second << std::endl;
+
 				}
+
 			}
 
 		}
 
-#if 0
-		if(0)
-		{
-			std::cout<<" \% Clusters formed "<<_clustersFound.size()<<std::endl;
-			std::cout<<"limits = [ "<<std::endl;
-			for(size_t i=0 ; i< _clustersFound.size() ; i++)
-			{
-				std::cout<<i<<" -> sz "<<_clustersFound[i].size<<" :: ";
-				std::cout<<" "<<_clustersFound[i].startLow<<" "<<_clustersFound[i].startHigh<<" ";
-				std::cout<<" "<<_clustersFound[i].endLow<<" "<<_clustersFound[i].endHigh<<std::endl;;
-
-			}
-			std::cout<<std::endl;
-			std::cout<<"]; "<<std::endl;
-
-
-			std::cout<<"membership =[ ";
-			for(size_t i=0; i<membership.size();i++)
-			{
-				std::cout<<membership[i]<<" ";
-			}
-			std::cout<<std::endl;
-			std::cout<<"]; "<<std::endl;
-		}
-#endif
-
 	}
 
-	IntPairSet& getClusterByID(int id){
-		return clusterIDtoLoopsMap[id];
+    int getClusterID(const IntPair& loop)
+    {
+        return loopToClusterIDMap.at(loop);
+    }
+
+    double getScoreByID(int id){
+	    return _clustersFound.at(id).mean_score;
 	}
 
-    IDintPairPairSet& getClusterByID_new(int id){
-	    return clusterIDtoLoopMapsMap[id];
+
+	IntPairDoubleMap& getClusterByID(int id){
+		return clusterIDtoLoopsMap.at(id);
 	}
 
 	size_t clusterCount()
@@ -210,11 +139,11 @@ public:
 	{
 		clusterIDtoLoopsMap.erase(clusterID);
 
-		for(IntPairIDMap::iterator it= loopToClusterIDMap.begin();
-				it!=loopToClusterIDMap.end(); it++)
+		for(IntPairDoubleMapIDMap::iterator it= loopwScoreToClusterIDMap.begin();
+				it!=loopwScoreToClusterIDMap.end(); it++)
 		{
 			if(it->second == clusterID)
-				loopToClusterIDMap.erase(it->first);
+				loopwScoreToClusterIDMap.erase(it->first);
 		}
 
 		return true;

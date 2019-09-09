@@ -33,8 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/Optimizer.h>
 
 #include <gtsam/slam/dataset.h> // to read g2o file
-
-#include <rtabmap/core/optimizer/cluster_utils.h> // for clustering
+#include "rtabmap/core/optimizer/cluster.hpp" // for clustering
 
 
 namespace rtabmap {
@@ -79,6 +78,7 @@ public:
 			std::list<std::map<int, Transform> > * intermediateGraphes = 0,
 			double * finalError = 0,
 			int * iterationsDone = 0);
+
 
 private:
 	int optimizer_;

@@ -45,6 +45,10 @@
 	typedef std::vector<int>				IntVector;
 	typedef std::set<int>					IntSet;
 	typedef std::map < IntPair, double >    IntPairDoubleMap;
+	typedef std::set<IntPairDoubleMap>      IntPairDoubleMapSet;
+	typedef std::map< int, IntPairDoubleMap> IDintPairDoubleMapMap;
+	typedef std::map<IntPairDoubleMap, int>     IntPairDoubleMapIDMap;
+
 
 
     typedef std::pair< int, IntPair>        IDintPairPair;
