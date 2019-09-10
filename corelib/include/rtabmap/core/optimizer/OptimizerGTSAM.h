@@ -83,10 +83,12 @@ public:
 private:
 	int optimizer_;
 	bool scs_;
-	float penalty_;
+	float prior_penalty_;
+	float squeeze_penalty_;
 	float threshold_;
 	bool sigmoid_;
 	bool dense_factor_;
+	bool squeeze_factor_;
 };
 
 } /* namespace rtabmap */

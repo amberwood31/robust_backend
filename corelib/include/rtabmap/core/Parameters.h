@@ -405,10 +405,12 @@ class RTABMAP_EXP Parameters
     RTABMAP_PARAM(GTSAM, Optimizer,       int, 1,          "0=Levenberg 1=GaussNewton 2=Dogleg");
 
     RTABMAP_PARAM(SCS, Status,             bool,true,       "this switchs on the squeezing consistant switchable code");
-    RTABMAP_PARAM(SCS, Penalty,            float,20.0,                                 "increase penalty for potential good measurements");
+    RTABMAP_PARAM(SCS, PriorPenalty,            float,20.0,                                 "increase penalty for potential good measurements");
+    RTABMAP_PARAM(SCS, SqueezePenalty,            float,20.0,                                 "increase penalty for potential good measurements");
     RTABMAP_PARAM(SCS, DenseFactor,        bool,true,               "if true, linking every edges within the cluster; if false, only linking sequential edges");
     RTABMAP_PARAM(SCS, Threshold,          float,0.001,                       "threshold for clustering");
     RTABMAP_PARAM(SCS, Sigmoid,            bool,true,         "if true, use switchablesigmoid; if false, use switchablelinear");
+    RTABMAP_PARAM(SCS, SqueezeFactor,      bool,true,                  "if true, add squeeze factor; if false, don't add");
 
     // Odometry
     RTABMAP_PARAM(Odom, Strategy,               int, 0,       "0=Frame-to-Map (F2M) 1=Frame-to-Frame (F2F) 2=Fovis 3=viso2 4=DVO-SLAM 5=ORB_SLAM2 6=OKVIS 7=LOAM 8=MSCKF_VIO");

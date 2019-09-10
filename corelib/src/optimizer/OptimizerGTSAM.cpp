@@ -86,10 +86,12 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 	Optimizer::parseParameters(parameters);
 	Parameters::parse(parameters, Parameters::kGTSAMOptimizer(), optimizer_);
 	Parameters::parse(parameters, Parameters::kSCSStatus(), scs_);
-	Parameters::parse(parameters, Parameters::kSCSPenalty(), penalty_);
+	Parameters::parse(parameters, Parameters::kSCSPriorPenalty(), prior_penalty_);
+    Parameters::parse(parameters, Parameters::kSCSSqueezePenalty(), squeeze_penalty_);
 	Parameters::parse(parameters, Parameters::kSCSThreshold(), threshold_);
 	Parameters::parse(parameters, Parameters::kSCSSigmoid(), sigmoid_);
 	Parameters::parse(parameters, Parameters::kSCSDenseFactor(), dense_factor_);
+	Parameters::parse(parameters, Parameters::kSCSSqueezeFactor(), squeeze_factor_);
 
 }
 
@@ -490,11 +492,11 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                         {
                             if (sigmoid_ == true)
                             {
-                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(penalty_)); // use larger penalty if score is low (good quality)
+                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(prior_penalty_)); // use larger penalty if score is low (good quality)
                                 graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
                             }
                             else{
-                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(penalty_)); // use larger penalty if score is low (good quality)
+                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(prior_penalty_)); // use larger penalty if score is low (good quality)
                                 graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
 
                             }
@@ -619,36 +621,63 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 		if (scs_ == true)
         {
-
-            UDEBUG("Add New between factors");
-
-            for (size_t i = 0; i < clusterizer.clusterCount(); i++)
+		    if (squeeze_factor_ == true)
             {
+                UDEBUG("Add New between factors");
+
+                for (size_t i = 0; i < clusterizer.clusterCount(); i++)
+                {
 //            if (clusterizer.getScoreByID(i) > 0.5)// if score is higher than 0, currently it could only be 0 or higher than 0.95
 //            {
-                IntPairDoubleMap loops_incluster = clusterizer.getClusterByID(i);
-                IntPairDoubleMap::const_iterator last = loops_incluster.end();
-                --last; // need to stop at -1 location
+                    IntPairDoubleMap loops_incluster = clusterizer.getClusterByID(i);
+                    IntPairDoubleMap::const_iterator last = loops_incluster.end();
+                    --last; // need to stop at -1 location
 
-                // Todo_local: change the covariance value depending on cluster's mean score
+                    // Todo_local: change the covariance value depending on cluster's mean score
 
-                for (IntPairDoubleMap::const_iterator iter = loops_incluster.begin(); iter != last; ++iter)
-                {
-                    int switchVariable_first_ID, switchVariable_second_ID;
-                    IntPair loop_in_check_first = iter->first;
-                    if (loop_in_check_first.first != 0 && loop_in_check_first.second!= 0)
+                    for (IntPairDoubleMap::const_iterator iter = loops_incluster.begin(); iter != last; ++iter)
                     {
-                        switchVariable_first_ID = loop_to_switchcounter.at(loop_in_check_first);
-                        ++iter;
-
-                    } else{
-                        break; // handle pose 0 from slam++
-                    }
-
-                    if (dense_factor_ == true){ // factor linking everyone within the cluster
-                        for (IntPairDoubleMap::const_iterator it = iter; it != loops_incluster.end(); ++it)
+                        int switchVariable_first_ID, switchVariable_second_ID;
+                        IntPair loop_in_check_first = iter->first;
+                        if (loop_in_check_first.first != 0 && loop_in_check_first.second!= 0)
                         {
-                            IntPair loop_in_check_second = it->first;
+                            switchVariable_first_ID = loop_to_switchcounter.at(loop_in_check_first);
+                            ++iter;
+
+                        } else{
+                            break; // handle pose 0 from slam++
+                        }
+
+                        if (dense_factor_ == true){ // factor linking everyone within the cluster
+                            for (IntPairDoubleMap::const_iterator it = iter; it != loops_incluster.end(); ++it)
+                            {
+                                IntPair loop_in_check_second = it->first;
+                                if (loop_in_check_second.first != 0 && loop_in_check_second.second!= 0)
+                                {
+                                    switchVariable_second_ID = loop_to_switchcounter.at(loop_in_check_second);
+                                }
+                                else{
+                                    break; //handle pose 0 from slam++
+                                }
+
+
+                                if (sigmoid_== true){
+                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_));
+                                    graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+                                }else{
+                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_));
+                                    graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+                                }
+                                std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
+
+                            }
+
+                        }
+                        else  // factor linking only sequential LC edges
+                        {
+                            IntPair loop_in_check_second = iter->first;
                             if (loop_in_check_second.first != 0 && loop_in_check_second.second!= 0)
                             {
                                 switchVariable_second_ID = loop_to_switchcounter.at(loop_in_check_second);
@@ -656,7 +685,6 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                             else{
                                 break; //handle pose 0 from slam++
                             }
-
 
                             if (sigmoid_== true){
                                 gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
@@ -669,45 +697,24 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                             }
                             std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
 
+
                         }
+
+
+
+                        --iter;
+
+
+
+                        //}
 
                     }
-                    else  // factor linking only sequential LC edges
-                    {
-                        IntPair loop_in_check_second = iter->first;
-                        if (loop_in_check_second.first != 0 && loop_in_check_second.second!= 0)
-                        {
-                            switchVariable_second_ID = loop_to_switchcounter.at(loop_in_check_second);
-                        }
-                        else{
-                            break; //handle pose 0 from slam++
-                        }
-
-                        if (sigmoid_== true){
-                            gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
-                            graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
-
-                        }else{
-                            gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
-                            graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
-
-                        }
-                        std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
-
-
-                    }
-
-
-
-                    --iter;
-
-
-                    
-                    //}
 
                 }
 
+
             }
+
 
         }
 
