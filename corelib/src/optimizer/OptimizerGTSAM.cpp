@@ -89,6 +89,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 	Parameters::parse(parameters, Parameters::kSCSPenalty(), penalty_);
 	Parameters::parse(parameters, Parameters::kSCSThreshold(), threshold_);
 	Parameters::parse(parameters, Parameters::kSCSSigmoid(), sigmoid_);
+	Parameters::parse(parameters, Parameters::kSCSDenseFactor(), dense_factor_);
+
 }
 
 
@@ -643,33 +645,64 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                         break; // handle pose 0 from slam++
                     }
 
+                    if (dense_factor_ == true){ // factor linking everyone within the cluster
+                        for (IntPairDoubleMap::const_iterator it = iter; it != loops_incluster.end(); ++it)
+                        {
+                            IntPair loop_in_check_second = it->first;
+                            if (loop_in_check_second.first != 0 && loop_in_check_second.second!= 0)
+                            {
+                                switchVariable_second_ID = loop_to_switchcounter.at(loop_in_check_second);
+                            }
+                            else{
+                                break; //handle pose 0 from slam++
+                            }
 
-                    IntPair loop_in_check_second = iter->first;
-                    if (loop_in_check_second.first != 0 && loop_in_check_second.second!= 0)
+
+                            if (sigmoid_== true){
+                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
+                                graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+                            }else{
+                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
+                                graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+                            }
+                            std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
+
+                        }
+
+                    }
+                    else  // factor linking only sequential LC edges
                     {
-                        switchVariable_second_ID = loop_to_switchcounter.at(loop_in_check_second);
+                        IntPair loop_in_check_second = iter->first;
+                        if (loop_in_check_second.first != 0 && loop_in_check_second.second!= 0)
+                        {
+                            switchVariable_second_ID = loop_to_switchcounter.at(loop_in_check_second);
+                        }
+                        else{
+                            break; //handle pose 0 from slam++
+                        }
+
+                        if (sigmoid_== true){
+                            gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
+                            graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+                        }else{
+                            gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
+                            graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+
+                        }
+                        std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
+
+
                     }
-                    else{
-                        break; //handle pose 0 from slam++
-                    }
 
 
-                    //gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(4.0));
-
-                    //graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
-
-                    if (sigmoid_== true){
-                        gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
-                        graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
-
-                    }else{
-                        gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
-                        graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
-
-                    }
-                    std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
 
                     --iter;
+
+
+                    
                     //}
 
                 }

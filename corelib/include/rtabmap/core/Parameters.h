@@ -406,6 +406,7 @@ class RTABMAP_EXP Parameters
 
     RTABMAP_PARAM(SCS, Status,             bool,true,       "this switchs on the squeezing consistant switchable code");
     RTABMAP_PARAM(SCS, Penalty,            float,20.0,                                 "increase penalty for potential good measurements");
+    RTABMAP_PARAM(SCS, DenseFactor,        bool,true,               "if true, linking every edges within the cluster; if false, only linking sequential edges");
     RTABMAP_PARAM(SCS, Threshold,          float,0.001,                       "threshold for clustering");
     RTABMAP_PARAM(SCS, Sigmoid,            bool,true,         "if true, use switchablesigmoid; if false, use switchablelinear");
 

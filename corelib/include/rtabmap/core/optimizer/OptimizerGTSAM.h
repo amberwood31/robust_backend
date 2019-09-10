@@ -86,6 +86,7 @@ private:
 	float penalty_;
 	float threshold_;
 	bool sigmoid_;
+	bool dense_factor_;
 };
 
 } /* namespace rtabmap */
