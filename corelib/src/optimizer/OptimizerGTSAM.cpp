@@ -237,7 +237,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
         IntPairIDMap loop_to_switchcounter;
 
         if (scs_ == true){
-            const char* clustering_results = "/home/amber/stew/slam++/bin/full_analysis.txt";
+            const char* clustering_results = "/home/amber/stew/rtabmap/bin/full_analysis.txt";
             FILE * clustering_analysis_file = fopen(clustering_results, "r");// read the clustering results
 
             if(clustering_analysis_file)
@@ -421,7 +421,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 			else // id1 != id2
 			{
 
-                IntPair current_edge(id1, id2);
+                IntPair current_edge;
                 int cluster_id;
                 double mean_score;
 
@@ -435,6 +435,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                     if (scs_ == true){
                         // fetch the score from the clusterizer
                         std::cout << "current edge: " << id1 << " " << id2 << std::endl;
+                        current_edge = std::make_pair(id1, id2);
                         cluster_id = clusterizer.getClusterID(current_edge);
                         mean_score = clusterizer.getScoreByID(cluster_id);
                         std::cout << "cluster id: " << cluster_id << std::endl;
@@ -456,15 +457,17 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                     if (sigmoid_ == true){
                         prior = 10.0;
                         initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
+                        std::cout << "added switch variable: s"<< switchCounter << std::endl;
                     } else{
                         prior = 1.0;
                         initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));
+                        std::cout << "added switch variable: s"<< switchCounter << std::endl;
                     }
 
 
                     if (scs_ == true)
                     {
-                        if (mean_score > 0.5) // if score is higher than 0, currently it could only be 0 or higher than 0.95
+                        if (mean_score > 0.50) // if score is higher than 0.5, now can only be above alpha, set in cluster.hpp
                         {
 
                             // create switch prior factor
@@ -556,15 +559,17 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                         if (sigmoid_ == true)
                         {
                             graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+
                         }
                         else{
+                            std::cout << "adding between factor for switch variable: s" << switchCounter << std::endl;
                             graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
 
                         }
 
                         if (scs_ == true)
                         {
-                            loop_to_switchcounter[IntPair(id1, id2)] = switchCounter;
+                            loop_to_switchcounter[IntPair(id1, id2)] = switchCounter-1; // need to minus 1 for switchCounter
                         }
 
 //                        }
@@ -618,6 +623,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		}
 
 		UDEBUG("%d switch vertex has been added", switchCounter- poses.size() -1);
+		std::cout << "check s833 exists: " << initialEstimate.exists(gtsam::Symbol('s', 833)) <<std::endl;
 
 		if (scs_ == true)
         {
@@ -712,11 +718,11 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
                 }
 
-
             }
 
 
         }
+        std::cout << "check s833 exists: " << initialEstimate.exists(gtsam::Symbol('s', 833)) <<std::endl;
 
 
 

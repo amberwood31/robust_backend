@@ -42,7 +42,7 @@ public:
 
 	void clusterize( FILE* clustering_results,  const double threshold)
 	{
-	    double alpha = 0.95;
+	    double alpha = 0.90;
 
 		if(!clustering_results)
 		{
@@ -95,6 +95,7 @@ public:
                         sum += it->second;
                     }
                     currentCluster->mean_score = sum / current_cluster_map.size();
+                    std::cout<<"                 " << lc_edge.first << " " << lc_edge.second << std::endl;
 
 
                 }
