@@ -28,8 +28,12 @@ namespace vertigo {
             if (H1) (*H1) = Matrix::Identity(traits<SwitchVariableLinear>::GetDimension(s1),traits<SwitchVariableLinear>::GetDimension(s1));
             if (H2) (*H2) = -1.0 * Matrix::Identity(traits<SwitchVariableLinear>::GetDimension(s2),traits<SwitchVariableLinear>::GetDimension(s2));
 
-            // manifold equivalent of z-x -> Local(x,z)
 
+            //gtsam::Vector error = gtsam::Vector1(1.0);
+            //error *= s1.value()-s2.value() ;
+            //return error;
+
+            // manifold equivalent of z-x -> Local(x,z)
             return -traits<SwitchVariableLinear>::Local(s1, s2);
 
         };
@@ -53,8 +57,8 @@ namespace vertigo {
             double w2 = sigmoid(s2.value());
             /* (w*(1.0-w))*/;  // sig(x)*(1-sig(x)) is the derivative of sig(x) wrt. x
 
-            if (H1) (*H1) = Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s1),traits<SwitchVariableSigmoid>::GetDimension(s1));//(w1*(1.0-w1)) *
-            if (H2) (*H2) = -1.0 * Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s2),traits<SwitchVariableSigmoid>::GetDimension(s2));//* (w2*(1.0-w2))
+            if (H1) (*H1) = (w1*(1.0-w1)) * Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s1),traits<SwitchVariableSigmoid>::GetDimension(s1));//(w1*(1.0-w1)) *
+            if (H2) (*H2) = (w2*(1.0-w2)) * -1.0 * Matrix::Identity(traits<SwitchVariableSigmoid>::GetDimension(s2),traits<SwitchVariableSigmoid>::GetDimension(s2));//* (w2*(1.0-w2))
 
             // manifold equivalent of z-x -> Local(x,z)
 

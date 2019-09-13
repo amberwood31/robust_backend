@@ -42,7 +42,7 @@ public:
 
 	void clusterize( FILE* clustering_results,  const double threshold)
 	{
-	    double alpha = 0.90;
+	    //double alpha = 0.50;
 
 		if(!clustering_results)
 		{
@@ -55,10 +55,10 @@ public:
 		{
             std::vector<std::string> strList = uListToVector(uSplit(uReplaceChar(line, '\n', ' '), ' '));
             double new_score = uStr2Double(strList[3]);
-            if (new_score < alpha)
-            {
-                new_score = 0;  //zero the score of all good measurements
-            }
+            //if (new_score < alpha)
+            //{
+            //    new_score = 0;  //zero the score of all good measurements
+            //}
             IntPair lc_edge(atoi(strList[0].c_str()), atoi(strList[1].c_str()));
             IntPairDoubleMap lc_edge_with_score;
             lc_edge_with_score[lc_edge] = new_score;
@@ -78,7 +78,7 @@ public:
 				cluster* currentCluster = NULL;
 				//check for the last score of last cluster
 
-                if (fabs(_clustersFound.back().last_score - new_score) < threshold)
+                if (fabs(_clustersFound.back().mean_score - new_score) < threshold && ((new_score < 0.99) == (_clustersFound.back().mean_score < 0.99)))//eliminate the crossing case
                 {
                     currentCluster = &_clustersFound.back();
                     currentCluster->size++;
