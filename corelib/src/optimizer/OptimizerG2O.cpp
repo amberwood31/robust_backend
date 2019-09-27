@@ -140,6 +140,8 @@ void OptimizerG2O::parseParameters(const ParametersMap & parameters)
 	Parameters::parse(parameters, Parameters::kg2oPixelVariance(), pixelVariance_);
 	Parameters::parse(parameters, Parameters::kg2oRobustKernelDelta(), robustKernelDelta_);
 	Parameters::parse(parameters, Parameters::kg2oBaseline(), baseline_);
+	Parameters::parse(parameters, Parameters::kg2oRobustKernelType(), robustKernelType_);
+	Parameters::parse(parameters, Parameters::kg2oRobustKernel(), robustKernel_);
 	UASSERT(pixelVariance_ > 0.0);
 	UASSERT(baseline_ >= 0.0);
 
@@ -740,6 +742,20 @@ std::map<int, Transform> OptimizerG2O::optimize(
 						e->setVertex(1, v2);
 						e->setMeasurement(g2o::SE2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()));
 						e->setInformation(information);
+
+                        if(robustKernel_ &&
+                           iter->second.type() != Link::kNeighbor &&
+                           iter->second.type() != Link::kNeighborMerged)
+                        {
+                            if(robustKernelDelta_ > 0.0 and robustKernelType_ == 1) // using DCS kernel for nonsequential edge
+                            {
+                                g2o::RobustKernelDCS* kernel = new g2o::RobustKernelDCS;
+                                kernel->setDelta(robustKernelDelta_);
+                                e->setRobustKernel(kernel);
+                            }
+
+                        }
+
 						edge = e;
 					}
 				}
@@ -785,6 +801,20 @@ std::map<int, Transform> OptimizerG2O::optimize(
 						e->setVertex(1, v2);
 						e->setMeasurement(constraint);
 						e->setInformation(information);
+
+                        if(robustKernel_ &&
+                           iter->second.type() != Link::kNeighbor &&
+                           iter->second.type() != Link::kNeighborMerged)
+                        {
+                            if(robustKernelDelta_ > 0.0 and robustKernelType_ == 1) // using DCS kernel for nonsequential edge
+                            {
+                                g2o::RobustKernelDCS* kernel = new g2o::RobustKernelDCS;
+                                kernel->setDelta(robustKernelDelta_);
+                                e->setRobustKernel(kernel);
+                            }
+
+                        }
+
 						edge = e;
 					}
 				}
@@ -800,9 +830,6 @@ std::map<int, Transform> OptimizerG2O::optimize(
 		}
 
         UDEBUG("%d edges added", edgeConstraints.size());
-		std::ofstream outputFile("vertex.txt");
-		optimizer.vertex(1045)->write(outputFile);
-		outputFile.close();
 
 
         UDEBUG("Initial optimization...");
@@ -817,7 +844,8 @@ std::map<int, Transform> OptimizerG2O::optimize(
 				"flag (if one library is built with this flag and not the other, "
 				"this is causing Eigen to not work properly, resulting in segmentation faults).");
 
-		UINFO("g2o optimizing begin (max iterations=%d, robust=%d)", iterations(), isRobust()?1:0);
+		UINFO("g2o optimizing begin (max iterations=%d, robust=%d, robustKernelType=%d, robustKernel=%f)", iterations(), isRobust()?1:0, robustKernelType_, robustKernelDelta_);
+
 
 		int it = 0;
 		UTimer timer;
@@ -932,10 +960,20 @@ std::map<int, Transform> OptimizerG2O::optimize(
 							}
 						}
 						intermediateGraphes->push_back(tmpPoses);
+                        // Save poses for every iteration
+                        std::string filename = "poses_transition";
+                        std::string tmpPath = filename + "_"+ std::to_string(it) + ".g2o";
+                        std::multimap<int, Link> empty_link;
+
+                        saveGraph(tmpPath, tmpPoses, empty_link);
+                        intermediateGraphes->push_back(tmpPoses);
+
 					}
 				}
 
 				it += optimizer.optimize(1);
+
+
 
 				// early stop condition
 				optimizer.computeActiveErrors();
@@ -1606,7 +1644,7 @@ std::map<int, Transform> OptimizerG2O::optimizeBA(
 						e->setVertex(0, vpt3d);
 						e->setVertex(1, vcam);
 
-						if(robustKernelDelta_ > 0.0)
+						if(robustKernelDelta_ > 0.0 and robustKernelType_ == 0) // using huberloss kernel
 						{
 							g2o::RobustKernelHuber* kernel = new g2o::RobustKernelHuber;
 							kernel->setDelta(robustKernelDelta_);
@@ -1625,7 +1663,7 @@ std::map<int, Transform> OptimizerG2O::optimizeBA(
 
 		UASSERT(optimizer.verifyInformationMatrices());
 
-		UDEBUG("g2o optimizing begin (max iterations=%d, robustKernel=%f)", iterations(), robustKernelDelta_);
+		UDEBUG("g2o optimizing begin (max iterations=%d, robustKernelType=%d, robustKernel=%f)", iterations(), robustKernelType_, robustKernelDelta_);
 
 		int it = 0;
 		UTimer timer;

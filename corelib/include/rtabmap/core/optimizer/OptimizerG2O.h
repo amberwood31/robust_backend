@@ -94,9 +94,12 @@ public:
 private:
 	int solver_;
 	int optimizer_;
+    bool robustKernel_;
+	int robustKernelType_;
 	double pixelVariance_;
 	double robustKernelDelta_;
 	double baseline_;
+
 };
 
 } /* namespace rtabmap */

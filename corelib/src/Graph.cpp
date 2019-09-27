@@ -190,7 +190,8 @@ bool importPoses(
 	else if(format == 4) // g2o
 	{
 		std::multimap<int, Link> constraintsTmp;
-        if(OptimizerGTSAM::loadGraph(filePath, poses, constraintsTmp))
+        //if(OptimizerG2O::loadGraph(filePath, poses, constraintsTmp)) // to read VERTEX_SE3
+        if(OptimizerGTSAM::loadGraph(filePath, poses, constraintsTmp)) // to read VERTEX_SE3:QUAT
         {
             if(constraints)
             {

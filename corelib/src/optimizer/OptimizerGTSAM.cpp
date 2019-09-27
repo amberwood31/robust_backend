@@ -610,8 +610,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 					   iter->second.type() != Link::kNeighborMerged)
 					{
 						// create switchable edge factor
-						//graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
-					    graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+					    graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
 					}
 					else
 #endif
@@ -626,7 +625,6 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		}
 
 		UDEBUG("%d switch vertex has been added", switchCounter- poses.size() -1);
-		std::cout << "check s833 exists: " << initialEstimate.exists(gtsam::Symbol('s', 833)) <<std::endl;
 
 		if (scs_ == true)
         {
@@ -725,8 +723,6 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 
         }
-        std::cout << "check s833 exists: " << initialEstimate.exists(gtsam::Symbol('s', 833)) <<std::endl;
-
 
 
 		UDEBUG("create optimizer");

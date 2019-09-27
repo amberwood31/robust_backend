@@ -399,6 +399,8 @@ class RTABMAP_EXP Parameters
 #endif
     RTABMAP_PARAM(g2o, Optimizer,         int, 0,          "0=Levenberg 1=GaussNewton");
     RTABMAP_PARAM(g2o, PixelVariance,     double, 1.0,     "Pixel variance used for bundle adjustment.");
+    RTABMAP_PARAM(g2o, RobustKernel,      bool, false,                              "if true, use robust kernel; if no, don't use");
+    RTABMAP_PARAM(g2o, RobustKernelType,  int, 0,                         "0=Huberloss 1=DCS");
     RTABMAP_PARAM(g2o, RobustKernelDelta, double, 8,       "Robust kernel delta used for bundle adjustment (0 means don't use robust kernel). Observations with chi2 over this threshold will be ignored in the second optimization pass.");
     RTABMAP_PARAM(g2o, Baseline,          double, 0.075,   "When doing bundle adjustment with RGB-D data, we can set a fake baseline (m) to do stereo bundle adjustment (if 0, mono bundle adjustment is done). For stereo data, the baseline in the calibration is used directly.");
 
