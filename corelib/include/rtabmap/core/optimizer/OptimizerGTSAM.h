@@ -54,7 +54,8 @@ public:
     bool saveGraph(
         const std::string & fileName,
         const std::map<int, Transform> & poses,
-        const std::multimap<int, Link> & edgeConstraints);
+        const std::multimap<int, Link> & edgeConstraints,
+        const IntPairSet & loops_after_clustering);
 
 
 public:

@@ -11,7 +11,8 @@ do
     cp "$INPUT""$FILENAME".g2o_seed_"$SEED"_del0.g2o del0.g2o
     sleep 1
     ./run_example.sh sorted.g2o del0.g2o
-    
+
+   
     #move to analysis chamber
     cd ../../test_backend/analysis_chamber/
     mkdir ../"$FILENAME"_seed_"$SEED"

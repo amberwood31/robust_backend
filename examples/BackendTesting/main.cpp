@@ -68,15 +68,15 @@ int main(int argc, char *argv[]){ //
         finalPoses = optimizer->optimize(poses.begin()->first, poses, constraints, &intermediateGraphes);
 
         //save the final poses to a file
-        std::string export_path = "/home/amber/stew/rtabmap/bin/output.g2o";
-        std::map<int, double> stamps;
-        if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, constraints, stamps, configParameters))
-        {
-            std::cout << "Export poses successfully"<< std::endl;
-        } else
-        {
-            std::cout << "Export poses failed"<< std::endl;
-        }
+        // this is moved inside OptimizerGTSAM to access loops_after_clustering
+
+//        if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, constraints, stamps, configParameters))
+//        {
+//            std::cout << "Export poses successfully"<< std::endl;
+//        } else
+//        {
+//            std::cout << "Export poses failed"<< std::endl;
+//        }
 
 
     } else

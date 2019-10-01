@@ -235,18 +235,21 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
         UDEBUG("clustering...");//
         Clusterizer clusterizer;
         IntPairIDMap loop_to_switchcounter;
+        IntPairSet loops_after_clustering;
+        bool edge_in_loops = false; // this indicates whether the specific edge still present after the clustering
 
         if (scs_ == true){
-            const char* clustering_results = "/home/amber/stew/rtabmap/bin/full_analysis.txt";
+            const char* clustering_results = "/home/amber/stew/rtabmap/bin/clustering_results.txt";
             FILE * clustering_analysis_file = fopen(clustering_results, "r");// read the clustering results
 
             if(clustering_analysis_file)
             {
-                clusterizer.clusterize(clustering_analysis_file, threshold_); // 0.001 being the default value
+                clusterizer.clusterize_new(clustering_analysis_file, loops_after_clustering); // 0.001 being the default value
             }
             fclose(clustering_analysis_file);
 
             std::cout << "Number of clusters found: " << clusterizer.clusterCount() << std::endl;
+            std::cout << "Number of edges loaded: " << loops_after_clustering.size() << std::endl;
 
 		}
 
@@ -257,6 +260,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		int switchCounter = poses.rbegin()->first+1;
 		for(std::multimap<int, Link>::const_iterator iter=edgeConstraints.begin(); iter!=edgeConstraints.end(); ++iter)
 		{
+		    edge_in_loops = false; // reset value for every edge
+
 			int id1 = iter->second.from();
 			int id2 = iter->second.to();
 			UASSERT(!iter->second.transform().isNull());
@@ -432,20 +437,9 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                    iter->second.type() != Link::kNeighbor &&
                    iter->second.type() != Link::kNeighborMerged)
                 {
-                    if (scs_ == true){
-                        // fetch the score from the clusterizer
-                        std::cout << "current edge: " << id1 << " " << id2 << std::endl;
-                        current_edge = std::make_pair(id1, id2);
-                        cluster_id = clusterizer.getClusterID(current_edge);
-                        mean_score = clusterizer.getScoreByID(cluster_id);
-                        std::cout << "cluster id: " << cluster_id << std::endl;
-                        std::cout << "mean_score: " << mean_score << std::endl;
-
-                    }
 
 
-
-                    //todo_local: only add switch variable for edges with high score
+                    //todo_local: maybe only add switch variable for edges with high score?
 
                     // create new switch variable
                     // Sunderhauf IROS 2012:
@@ -454,70 +448,89 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                     //  sij = 1 when using the linear switch function"
 
                     double prior;
-                    if (sigmoid_ == true){
-                        prior = 10.0;
-                        initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
-                        std::cout << "added switch variable: s"<< switchCounter << std::endl;
-                    } else{
-
-                        // vertigo parameters
-                        prior = 1.0;
-                        initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));
-                        std::cout << "added switch variable: s"<< switchCounter << std::endl;
-
-                    }
 
 
                     if (scs_ == true)
                     {
-                        if (mean_score > 0.95) // if score is higher than 0.95, now can only be above alpha, set in cluster.hpp
+                        // fetch the score from the clusterizer
+                        std::cout << "current edge: " << id1 << " " << id2 << std::endl;
+                        current_edge = std::make_pair(id1, id2);
+                        edge_in_loops = loops_after_clustering.find(current_edge) != loops_after_clustering.end();
+                        if (edge_in_loops == true)
                         {
+                            if (sigmoid_ == true){
+                                prior = 10.0;
+                                initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
+                                std::cout << "added switch variable: s"<< switchCounter << std::endl;
+                            } else{
+                                prior = 1.0;
+                                initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));
+                                std::cout << "added switch variable: s"<< switchCounter << std::endl;
 
-                            // create switch prior factor
-                            // "If the front-end is not able to assign sound individual values
-                            //  for Ξij , it is save to set all Ξij = 1, since this value is close
-                            //  to the individual optimal choice of Ξij for a large range of
-                            //  outliers."
+                            }
 
-                            //gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
-                            //graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+                            cluster_id = clusterizer.getClusterID(current_edge);
+                            mean_score = clusterizer.getScoreByID(cluster_id);
+                            std::cout << "cluster id: " << cluster_id << std::endl;
+                            std::cout << "mean_score: " << mean_score << std::endl;
 
-                            if (sigmoid_ == true)
+                            if (mean_score == 0.0)
+                                // if mean_score is exactly 0.0, the edge is either in a size=1 cluster, or generated large error when testing with OD edges
                             {
-                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
-                                graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
-                            }
-                            else{
-                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
-                                graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+
+                                // create switch prior factor
+                                // "If the front-end is not able to assign sound individual values
+                                //  for Ξij , it is save to set all Ξij = 1, since this value is close
+                                //  to the individual optimal choice of Ξij for a large range of
+                                //  outliers."
+
+                                //gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
+                                //graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+
+                                if (sigmoid_ == true)
+                                {
+                                    gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
+                                    graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
+                                }
+                                else{
+                                    gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
+                                    graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+
+                                }
 
                             }
-
-                        }
-                        else
-                        {
-                            if (sigmoid_ == true)
+                            else
                             {
-                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(prior_penalty_)); // use larger penalty if score is low (good quality)
-                                graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
-                            }
-                            else{
-                                gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(prior_penalty_)); // use larger penalty if score is low (good quality)
-                                graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+                                if (sigmoid_ == true)
+                                {
+                                    gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(prior_penalty_)); // use larger penalty if score is low (good quality)
+                                    graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
+                                }
+                                else{
+                                    gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(prior_penalty_)); // use larger penalty if score is low (good quality)
+                                    graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
+
+                                }
 
                             }
-
-
                         }
-
                     }
                     else
                     {
+
                         if (sigmoid_ == true){
+                            prior = 10.0;
+                            initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior));
+                            std::cout << "added switch variable: s"<< switchCounter << std::endl;
+
                             gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(20.0));
                             graph.add(gtsam::PriorFactor<vertigo::SwitchVariableSigmoid> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableSigmoid(prior), switchPriorModel));
                         }
                         else{
+                            prior = 1.0;
+                            initialEstimate.insert(gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior));
+                            std::cout << "added switch variable: s"<< switchCounter << std::endl;
+
                             gtsam::noiseModel::Diagonal::shared_ptr switchPriorModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(1.0));
                             graph.add(gtsam::PriorFactor<vertigo::SwitchVariableLinear> (gtsam::Symbol('s',switchCounter), vertigo::SwitchVariableLinear(prior), switchPriorModel));
 
@@ -555,32 +568,40 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 					   iter->second.type()!=Link::kNeighbor &&
 					   iter->second.type() != Link::kNeighborMerged)
 					{
-//                        if (mean_score > 0.5) // if score is higher than 0, currently it could only be 0 or higher than 0.95
-//                        {
-                             // create switchable edge factor
-                            //graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
-                        if (sigmoid_ == true)
-                        {
-                            graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
-
-                        }
-                        else{
-                            std::cout << "adding between factor for switch variable: s" << switchCounter << std::endl;
-                            graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
-
-                        }
-
                         if (scs_ == true)
                         {
-                            loop_to_switchcounter[IntPair(id1, id2)] = switchCounter-1; // need to minus 1 for switchCounter
+                            if (edge_in_loops == true)
+                            {
+                                if (sigmoid_ == true)
+                                {
+                                    graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+
+                                }
+                                else{
+                                    std::cout << "adding between factor for switch variable: s" << switchCounter << std::endl;
+                                    graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+
+                                }
+                                loop_to_switchcounter[IntPair(id1, id2)] = switchCounter-1; // need to minus 1 for the correct value of switchCounter
+
+                            }
+
+                        }
+                        else // vertigo
+                        {
+                            if (sigmoid_ == true)
+                            {
+                                graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+
+                            }
+                            else{
+                                std::cout << "adding between factor for switch variable: s" << switchCounter << std::endl;
+                                graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose2>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
+
+                            }
+
                         }
 
-//                        }
-//                        else
-//                        {   // add normal between factor
-//                            graph.add(gtsam::BetweenFactor<gtsam::Pose2>(id1, id2, gtsam::Pose2(iter->second.transform().x(), iter->second.transform().y(), iter->second.transform().theta()), model));
-//
-//                        }
 					}
 					else
 #endif
@@ -819,7 +840,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                 std::string tmpPath = filename + "_"+ std::to_string(it) + ".g2o";
                 std::multimap<int, Link> empty_link;
 
-				saveGraph(tmpPath, tmpPoses, empty_link);
+				saveGraph(tmpPath, tmpPoses, empty_link, loops_after_clustering);
 				intermediateGraphes->push_back(tmpPoses);
 			}
 			try
@@ -982,6 +1003,11 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		{
 			UWARN("GTSAM exception caught: %s", e.what());
 		}
+
+		// These two lines are moved here from the main function to access loops_after_clustering
+        std::string export_path = "/home/amber/stew/rtabmap/bin/output.g2o";
+		saveGraph(export_path, optimizedPoses, edgeConstraints, loops_after_clustering);
+
 
 		delete optimizer;
 	}
@@ -1153,6 +1179,7 @@ bool OptimizerGTSAM::loadGraph(
                 }
                 else
                 {
+                    std::cout << "idFrom: " << idFrom << ", " << "idTo: " << idTo << std::endl;
                     UFATAL("Referred poses from the link not exist!");
                 }
             }
@@ -1179,7 +1206,8 @@ bool OptimizerGTSAM::loadGraph(
 bool OptimizerGTSAM::saveGraph(
     const std::string & fileName,
     const std::map<int, Transform> & poses,
-    const std::multimap<int, Link> & edgeConstraints)
+    const std::multimap<int, Link> & edgeConstraints,
+    const IntPairSet & loops_after_clustering)
 {
     FILE * file = 0;
 
@@ -1365,10 +1393,27 @@ bool OptimizerGTSAM::saveGraph(
                     iter->second.type() != Link::kNeighbor &&
                     iter->second.type() != Link::kNeighborMerged)
             {
-                fprintf(file, "VERTEX_SWITCH %d 1\n", virtualVertexId);
-                fprintf(file, "EDGE_SWITCH_PRIOR %d 1 1.0\n", virtualVertexId);
-                prefix = isSlam2d() ? "EDGE_SE2_SWITCHABLE" : "EDGE_SE3_SWITCHABLE";
-                suffix = uFormat(" %d", virtualVertexId++);
+                IntPair current_edge(iter->second.from(), iter->second.to());
+                if (scs_ == true)
+                {
+                    if (loops_after_clustering.find(current_edge) != loops_after_clustering.end()) // if this edge exists in loops_after_clustering
+                    {
+                        fprintf(file, "VERTEX_SWITCH %d 1\n", virtualVertexId);
+                        fprintf(file, "EDGE_SWITCH_PRIOR %d 1 1.0\n", virtualVertexId);
+                        prefix = isSlam2d() ? "EDGE_SE2_SWITCHABLE" : "EDGE_SE3_SWITCHABLE";
+                        suffix = uFormat(" %d", virtualVertexId++);
+
+                    }
+                }
+                else{
+                    fprintf(file, "VERTEX_SWITCH %d 1\n", virtualVertexId);
+                    fprintf(file, "EDGE_SWITCH_PRIOR %d 1 1.0\n", virtualVertexId);
+                    prefix = isSlam2d() ? "EDGE_SE2_SWITCHABLE" : "EDGE_SE3_SWITCHABLE";
+                    suffix = uFormat(" %d", virtualVertexId++);
+
+                }
+
+
             }
 
             if(isSlam2d())
