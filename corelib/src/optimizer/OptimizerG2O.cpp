@@ -1205,6 +1205,11 @@ std::map<int, Transform> OptimizerG2O::optimize(
 	{
 		UWARN("This method should be called at least with 1 pose!");
 	}
+
+    // These two lines are moved here from the main function to access loops_after_clustering
+    std::string export_path = "/home/amber/stew/rtabmap/bin/output.g2o";
+    saveGraph(export_path, optimizedPoses, edgeConstraints);
+
 	UDEBUG("Optimizing graph...end!");
 #else
 #ifdef RTABMAP_ORB_SLAM2
@@ -2026,26 +2031,26 @@ bool OptimizerG2O::saveGraph(
 		// force periods to be used instead of commas
 		setlocale(LC_ALL, "en_US.UTF-8");
 
-		if(isSlam2d())
-		{
-			// PARAMS_SE2OFFSET id x y theta (set for priors)
-			fprintf(file, "PARAMS_SE2OFFSET %d 0 0 0\n", PARAM_OFFSET);
-		}
-		else
-		{
-			// PARAMS_SE3OFFSET id x y z qw qx qy qz (set for priors)
-			Eigen::Vector3f v = Eigen::Vector3f::Zero();
-			Eigen::Quaternionf q = Eigen::Quaternionf::Identity();
-			fprintf(file, "PARAMS_SE3OFFSET %d %f %f %f %f %f %f %f\n",
-				PARAM_OFFSET,
-				v.x(),
-				v.y(),
-				v.z(),
-				q.x(),
-				q.y(),
-				q.z(),
-				q.w());
-		}
+//		if(isSlam2d())
+//		{
+//			// PARAMS_SE2OFFSET id x y theta (set for priors)
+//			fprintf(file, "PARAMS_SE2OFFSET %d 0 0 0\n", PARAM_OFFSET);
+//		}
+//		else
+//		{
+//			// PARAMS_SE3OFFSET id x y z qw qx qy qz (set for priors)
+//			Eigen::Vector3f v = Eigen::Vector3f::Zero();
+//			Eigen::Quaternionf q = Eigen::Quaternionf::Identity();
+//			fprintf(file, "PARAMS_SE3OFFSET %d %f %f %f %f %f %f %f\n",
+//				PARAM_OFFSET,
+//				v.x(),
+//				v.y(),
+//				v.z(),
+//				q.x(),
+//				q.y(),
+//				q.z(),
+//				q.w());
+//		}
 
 		int landmarkOffset = poses.size()&&poses.rbegin()->first>0?poses.rbegin()->first+1:0;
 		for(std::map<int, Transform>::const_iterator iter = poses.begin(); iter!=poses.end(); ++iter)

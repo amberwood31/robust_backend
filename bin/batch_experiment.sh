@@ -7,8 +7,8 @@ do
     #echo $INPUT
 
     #run experiment
-    cp "$INPUT""$FILENAME".g2o_seed_"$SEED"_sorted.g2o sorted.g2o
-    cp "$INPUT""$FILENAME".g2o_seed_"$SEED"_del0.g2o del0.g2o
+    cp "$INPUT""$FILENAME".g2o_unique.g2o_seed_"$SEED"_sorted.g2o sorted.g2o
+    cp "$INPUT""$FILENAME".g2o_unique.g2o_seed_"$SEED"_del0.g2o del0.g2o
     sleep 1
     ./run_example.sh sorted.g2o del0.g2o
 

@@ -690,11 +690,11 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 
                                 if (sigmoid_== true){
-                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_/loops_incluster.size()));
+                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ *(loops_incluster.size()-1)/2));
                                     graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                                 }else{
-                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_/loops_incluster.size()));
+                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ *(loops_incluster.size()-1)/2));
                                     graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                                 }
@@ -715,11 +715,11 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                             }
 
                             if (sigmoid_== true){
-                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_/loops_incluster.size()));
+                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ * (loops_incluster.size()-1)/2));
                                 graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                             }else{
-                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_/loops_incluster.size()));
+                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ * (loops_incluster.size()-1)/2));
                                 graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                             }
