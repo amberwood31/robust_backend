@@ -1105,24 +1105,39 @@ bool OptimizerGTSAM::loadGraph(
                 informationMatrix.at<double>(0,4) = uStr2Float(strList[14]);
                 informationMatrix.at<double>(0,5) = uStr2Float(strList[15]);
 
+                informationMatrix.at<double>(1,0) = informationMatrix.at<double>(0,1);
                 informationMatrix.at<double>(1,1) = uStr2Float(strList[16]);
                 informationMatrix.at<double>(1,2) = uStr2Float(strList[17]);
                 informationMatrix.at<double>(1,3) = uStr2Float(strList[18]);
                 informationMatrix.at<double>(1,4) = uStr2Float(strList[19]);
                 informationMatrix.at<double>(1,5) = uStr2Float(strList[20]);
 
+                informationMatrix.at<double>(2,0) = informationMatrix.at<double>(0,2);
+                informationMatrix.at<double>(2,1) = informationMatrix.at<double>(1,2);
                 informationMatrix.at<double>(2,2) = uStr2Float(strList[21]);
                 informationMatrix.at<double>(2,3) = uStr2Float(strList[22]);
                 informationMatrix.at<double>(2,4) = uStr2Float(strList[23]);
                 informationMatrix.at<double>(2,5) = uStr2Float(strList[24]);
 
+                informationMatrix.at<double>(3,0) = informationMatrix.at<double>(0,3);
+                informationMatrix.at<double>(3,1) = informationMatrix.at<double>(1,3);
+                informationMatrix.at<double>(3,2) = informationMatrix.at<double>(2,3);
                 informationMatrix.at<double>(3,3) = uStr2Float(strList[25]);
                 informationMatrix.at<double>(3,4) = uStr2Float(strList[26]);
                 informationMatrix.at<double>(3,5) = uStr2Float(strList[27]);
 
+                informationMatrix.at<double>(4,0) = informationMatrix.at<double>(0,4);
+                informationMatrix.at<double>(4,1) = informationMatrix.at<double>(1,4);
+                informationMatrix.at<double>(4,2) = informationMatrix.at<double>(2,4);
+                informationMatrix.at<double>(4,3) = informationMatrix.at<double>(3,4);
                 informationMatrix.at<double>(4,4) = uStr2Float(strList[28]);
                 informationMatrix.at<double>(4,5) = uStr2Float(strList[29]);
 
+                informationMatrix.at<double>(5,0) = informationMatrix.at<double>(0,5);
+                informationMatrix.at<double>(5,1) = informationMatrix.at<double>(1,5);
+                informationMatrix.at<double>(5,2) = informationMatrix.at<double>(2,5);
+                informationMatrix.at<double>(5,3) = informationMatrix.at<double>(3,5);
+                informationMatrix.at<double>(5,4) = informationMatrix.at<double>(4,5);
                 informationMatrix.at<double>(5,5) = uStr2Float(strList[30]);
 
                 Transform transform(x, y, z, qx, qy, qz, qw);
@@ -1139,7 +1154,7 @@ bool OptimizerGTSAM::loadGraph(
                 }
                 else
                 {
-                    UFATAL("Referred poses from the link not exist!");
+                    UFATAL("Referred pose %d - %d from the link not exist!", idFrom, idTo);
                 }
             }
             else if(strList.size() == 12)

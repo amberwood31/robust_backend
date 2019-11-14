@@ -159,14 +159,16 @@ IF(APPLE OR WIN32)
     OPTION(BUILD_AS_BUNDLE "Set to ON to build as bundle with all embedded dependencies (DragNDrop for Mac, installer for Windows)" OFF)
 ENDIF(APPLE OR WIN32)
 OPTION(BUILD_APP "Build main application" ON)
-OPTION(BUILD_TOOLS "Build tools" OFF)
+OPTION(BUILD_TOOLS "Build tools" ON)
+MESSAGE(STATUS "BUILD TOOLS ON")
+
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 
 ####### DEPENDENCIES #######
 IF(ANDROID)
 option(WITH_QT            "Include Qt support"                   OFF)
 ELSE()
-option(WITH_QT            "Include Qt support"                   OFF)
+option(WITH_QT            "Include Qt support"                   ON)
 ENDIF()
 option(WITH_ORB_OCTREE    "Include ORB Octree feature support"   ON)
 option(WITH_FREENECT      "Include Freenect support"             ON)

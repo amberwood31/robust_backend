@@ -6206,6 +6206,11 @@ void DatabaseViewer::updateGraphView()
 			}
 		}
 		UINFO("Connected graph of %d poses and %d links", (int)posesOut.size(), (int)linksOut.size());
+
+        std::string initial_pose_path = "initial_poses.g2o";
+        rtabmap::graph::exportPoses(initial_pose_path, 4, posesOut, linksOut);
+
+
 		QTime time;
 		time.start();
 		std::map<int, rtabmap::Transform> finalPoses = optimizer->optimize(fromId, posesOut, linksOut, ui_->checkBox_iterativeOptimization->isChecked()?&graphes_:0);

@@ -958,7 +958,7 @@ bool Rtabmap::process(
 		const std::vector<float> & odomVelocity,
 		const std::map<std::string, float> & externalStats)
 {
-	UDEBUG("");
+	UDEBUG("long process function ran once");
 
 	//============================================================
 	// Initialization
