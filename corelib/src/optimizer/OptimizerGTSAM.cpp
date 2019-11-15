@@ -92,6 +92,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 	Parameters::parse(parameters, Parameters::kSCSSigmoid(), sigmoid_);
 	Parameters::parse(parameters, Parameters::kSCSDenseFactor(), dense_factor_);
 	Parameters::parse(parameters, Parameters::kSCSSqueezeFactor(), squeeze_factor_);
+	Parameters::parse(parameters, Parameters::kSCSClusteringResults(), clustering_results_);
 
 }
 
@@ -239,8 +240,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
         bool edge_in_loops = false; // this indicates whether the specific edge still present after the clustering
 
         if (scs_ == true){
-            const char* clustering_results = "/home/amber/stew/rtabmap/bin/clustering_results.txt";
-            FILE * clustering_analysis_file = fopen(clustering_results, "r");// read the clustering results
+            //const char* clustering_results = "/home/amber/stew/rtabmap/bin/clustering_results.txt";
+            FILE * clustering_analysis_file = fopen(clustering_results_.c_str(), "r");// read the clustering results
 
             if(clustering_analysis_file)
             {
@@ -474,8 +475,8 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                             std::cout << "cluster id: " << cluster_id << std::endl;
                             std::cout << "mean_score: " << mean_score << std::endl;
 
-                            if (mean_score == 0.0)
-                                // if mean_score is exactly 0.0, the edge is either in a size=1 cluster, or generated large error when testing with OD edges
+                            if (mean_score == 100.0)
+                                // if mean_score is exactly 100.0, the edge is either in a size=1 cluster, or generated large error when testing with OD edges
                             {
 
                                 // create switch prior factor
@@ -630,14 +631,45 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 					   iter->second.type() != Link::kNeighbor &&
 					   iter->second.type() != Link::kNeighborMerged)
 					{
-						// create switchable edge factor
-					    graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+
+                        if (scs_ == true)
+                        {
+                            if (edge_in_loops == true)
+                            {
+                                if (sigmoid_ == true)
+                                {
+                                    graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+
+                                }
+                                else{
+                                    std::cout << "adding between factor for switch variable: s" << switchCounter << std::endl;
+                                    graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+
+                                }
+                                loop_to_switchcounter[IntPair(id1, id2)] = switchCounter-1; // need to minus 1 for the correct value of switchCounter
+
+                            }
+
+                        }
+                        else // vertigo
+                        {
+                            if (sigmoid_ == true)
+                            {
+                                graph.add(vertigo::BetweenFactorSwitchableSigmoid<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+
+                            }
+                            else{
+                                std::cout << "adding between factor for switch variable: s" << switchCounter << std::endl;
+                                graph.add(vertigo::BetweenFactorSwitchableLinear<gtsam::Pose3>(id1, id2, gtsam::Symbol('s', switchCounter++), gtsam::Pose3(iter->second.transform().toEigen4d()), model));
+
+                            }
+
+                        }
+
 					}
 					else
 #endif
-                    if(0) // check clustering results
-                    {}
-					else
+
 					{
 						graph.add(gtsam::BetweenFactor<gtsam::Pose3>(id1, id2, gtsam::Pose3(iter->second.transform().toEigen4d()), model));
 					}

@@ -90,6 +90,7 @@ private:
 	bool sigmoid_;
 	bool dense_factor_;
 	bool squeeze_factor_;
+	std::string clustering_results_;
 };
 
 } /* namespace rtabmap */

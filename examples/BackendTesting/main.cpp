@@ -4,7 +4,6 @@
 
 #include "rtabmap/core/Graph.h"
 #include "rtabmap/core/Transform.h"
-#include "rtabmap/core/optimizer/OptimizerGTSAM.h"
 #include "rtabmap/core/Optimizer.h"
 #include "rtabmap/core/Rtabmap.h"
 #include <rtabmap/utilite/UStl.h>
@@ -31,8 +30,8 @@ int main(int argc, char *argv[]){ //
     }
 
 
-    const std::string & path = argv[1];//"/home/amber/pose_dataset/test_rtabmap_backend/manhattanOlson3500.g2o"; //
-    int format_local = 4; // 0=Raw, 1=RGBD-SLAM motion capture (10=without change of coordinate frame), 2=KITTI, 3=TORO, 4=g2o, 5=NewCollege(t,x,y), 6=Malaga Urban GPS, 7=St Lucia INS, 8=Karlsruhe
+    const std::string & path = argv[1];
+    int format_local = 4; // g2o format
     std::map<int, rtabmap::Transform> poses;
     std::multimap<int, rtabmap::Link>  constraints;
 
@@ -56,8 +55,7 @@ int main(int argc, char *argv[]){ //
         //log
         rtabmap.setWorkingDirectory(workingDir);
 
-
-        //create gtsam optimizer
+        //create optimizer
         rtabmap::Optimizer * optimizer = rtabmap::Optimizer::create(configParameters);
 
         //optimize
@@ -69,15 +67,6 @@ int main(int argc, char *argv[]){ //
 
         //save the final poses to a file
         // this is moved inside OptimizerGTSAM to access loops_after_clustering
-
-//        if (rtabmap::graph::exportPoses(export_path, 4, finalPoses, constraints, stamps, configParameters))
-//        {
-//            std::cout << "Export poses successfully"<< std::endl;
-//        } else
-//        {
-//            std::cout << "Export poses failed"<< std::endl;
-//        }
-
 
     } else
     {

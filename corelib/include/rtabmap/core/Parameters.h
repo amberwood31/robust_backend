@@ -413,7 +413,7 @@ class RTABMAP_EXP Parameters
     RTABMAP_PARAM(SCS, Threshold,          float,0.001,                       "threshold for clustering");
     RTABMAP_PARAM(SCS, Sigmoid,            bool,true,         "if true, use switchablesigmoid; if false, use switchablelinear");
     RTABMAP_PARAM(SCS, SqueezeFactor,      bool,true,                  "if true, add squeeze factor; if false, don't add");
-
+    RTABMAP_PARAM_STR(SCS, ClusteringResults, "clustering_results.txt",                               "relative path to the clustering results file");
     // Odometry
     RTABMAP_PARAM(Odom, Strategy,               int, 0,       "0=Frame-to-Map (F2M) 1=Frame-to-Frame (F2F) 2=Fovis 3=viso2 4=DVO-SLAM 5=ORB_SLAM2 6=OKVIS 7=LOAM 8=MSCKF_VIO");
     RTABMAP_PARAM(Odom, ResetCountdown,         int, 0,       "Automatically reset odometry after X consecutive images on which odometry cannot be computed (value=0 disables auto-reset).");
