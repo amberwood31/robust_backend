@@ -2,22 +2,22 @@
 // Created by amber on 2019-07-30.
 //
 
-#ifndef RTABMAP_BETWEENFACTORSQUEEZESWITCHABLE_H
-#define RTABMAP_BETWEENFACTORSQUEEZESWITCHABLE_H
+#ifndef RTABMAP_BETWEENFACTORCLUSTERSWITCHABLE_H
+#define RTABMAP_BETWEENFACTORCLUSTERSWITCHABLE_H
 
 #include <gtsam/nonlinear/NonlinearFactor.h>
 
 #include <iostream>
 
-#include "switchVariableLinear.h"
-#include "switchVariableSigmoid.h"
+#include "vertigo/gtsam/switchVariableLinear.h"
+#include "vertigo/gtsam/switchVariableSigmoid.h"
 
 namespace vertigo {
-    class BetweenFactorSqueezeSwitchableLinear : public gtsam::NoiseModelFactor2<SwitchVariableLinear, SwitchVariableLinear>
+    class BetweenFactorClusterSwitchableLinear : public gtsam::NoiseModelFactor2<SwitchVariableLinear, SwitchVariableLinear>
     {
     public:
-        BetweenFactorSqueezeSwitchableLinear() {};
-        BetweenFactorSqueezeSwitchableLinear(gtsam::Key key1, gtsam::Key key2, const gtsam::SharedNoiseModel& model)
+        BetweenFactorClusterSwitchableLinear() {};
+        BetweenFactorClusterSwitchableLinear(gtsam::Key key1, gtsam::Key key2, const gtsam::SharedNoiseModel& model)
             : gtsam::NoiseModelFactor2<SwitchVariableLinear, SwitchVariableLinear>(model, key1, key2) {};
 
         gtsam::Vector evaluateError(const SwitchVariableLinear& s1, const SwitchVariableLinear& s2,
@@ -42,11 +42,11 @@ namespace vertigo {
 
     };
 
-    class BetweenFactorSqueezeSwitchableSigmoid : public gtsam::NoiseModelFactor2<SwitchVariableSigmoid, SwitchVariableSigmoid>
+    class BetweenFactorClusterSwitchableSigmoid : public gtsam::NoiseModelFactor2<SwitchVariableSigmoid, SwitchVariableSigmoid>
     {
     public:
-        BetweenFactorSqueezeSwitchableSigmoid() {};
-        BetweenFactorSqueezeSwitchableSigmoid(gtsam::Key key1, gtsam::Key key2, const gtsam::SharedNoiseModel& model)
+        BetweenFactorClusterSwitchableSigmoid() {};
+        BetweenFactorClusterSwitchableSigmoid(gtsam::Key key1, gtsam::Key key2, const gtsam::SharedNoiseModel& model)
             : gtsam::NoiseModelFactor2<SwitchVariableSigmoid, SwitchVariableSigmoid>(model, key1, key2) {};
 
         gtsam::Vector evaluateError(const SwitchVariableSigmoid& s1, const SwitchVariableSigmoid& s2,
@@ -82,4 +82,4 @@ namespace vertigo {
 
 }
 
-#endif //RTABMAP_BETWEENFACTORSQUEEZESWITCHABLE_H
+#endif //RTABMAP_BETWEENFACTORCLUSTERSWITCHABLE_H

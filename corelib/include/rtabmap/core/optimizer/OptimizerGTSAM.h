@@ -83,13 +83,12 @@ public:
 
 private:
 	int optimizer_;
-	bool scs_;
+	bool cps_;
 	float prior_penalty_;
-	float squeeze_penalty_;
-	float threshold_;
+	float cluster_penalty_;
 	bool sigmoid_;
 	bool dense_factor_;
-	bool squeeze_factor_;
+	bool cluster_factor_;
 	std::string clustering_results_;
 };
 

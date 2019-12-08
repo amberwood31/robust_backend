@@ -64,7 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vertigo/gtsam/switchVariableLinear.h"
 #include "vertigo/gtsam/switchVariableSigmoid.h"
 
-#include "vertigo/gtsam/betweenFactorSqueezeSwitchable.h"
+#include "betweenFactorClusterSwitchable.h"
 #endif
 #endif // end RTABMAP_GTSAM
 
@@ -85,14 +85,13 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 {
 	Optimizer::parseParameters(parameters);
 	Parameters::parse(parameters, Parameters::kGTSAMOptimizer(), optimizer_);
-	Parameters::parse(parameters, Parameters::kSCSStatus(), scs_);
-	Parameters::parse(parameters, Parameters::kSCSPriorPenalty(), prior_penalty_);
-    Parameters::parse(parameters, Parameters::kSCSSqueezePenalty(), squeeze_penalty_);
-	Parameters::parse(parameters, Parameters::kSCSThreshold(), threshold_);
-	Parameters::parse(parameters, Parameters::kSCSSigmoid(), sigmoid_);
-	Parameters::parse(parameters, Parameters::kSCSDenseFactor(), dense_factor_);
-	Parameters::parse(parameters, Parameters::kSCSSqueezeFactor(), squeeze_factor_);
-	Parameters::parse(parameters, Parameters::kSCSClusteringResults(), clustering_results_);
+	Parameters::parse(parameters, Parameters::kCPSStatus(), cps_);
+	Parameters::parse(parameters, Parameters::kCPSPriorPenalty(), prior_penalty_);
+    Parameters::parse(parameters, Parameters::kCPSClusterPenalty(), cluster_penalty_);
+	Parameters::parse(parameters, Parameters::kCPSSigmoid(), sigmoid_);
+	Parameters::parse(parameters, Parameters::kCPSDenseFactor(), dense_factor_);
+	Parameters::parse(parameters, Parameters::kCPSClusterFactor(), cluster_factor_);
+	Parameters::parse(parameters, Parameters::kCPSClusteringResults(), clustering_results_);
 
 }
 
@@ -239,18 +238,23 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
         IntPairSet loops_after_clustering;
         bool edge_in_loops = false; // this indicates whether the specific edge still present after the clustering
 
-        if (scs_ == true){
-            //const char* clustering_results = "/home/amber/stew/rtabmap/bin/clustering_results.txt";
-            FILE * clustering_analysis_file = fopen(clustering_results_.c_str(), "r");// read the clustering results
+        if (cps_ == true){
 
-            if(clustering_analysis_file)
-            {
-                clusterizer.clusterize_new(clustering_analysis_file, loops_after_clustering); // 0.001 being the default value
-            }
-            fclose(clustering_analysis_file);
+                FILE * clustering_analysis_file = fopen(clustering_results_.c_str(), "r");// read the clustering results
 
-            std::cout << "Number of clusters found: " << clusterizer.clusterCount() << std::endl;
-            std::cout << "Number of edges loaded: " << loops_after_clustering.size() << std::endl;
+                if(clustering_analysis_file)
+                {
+                    clusterizer.clusterize_new(clustering_analysis_file, loops_after_clustering); // 0.001 being the default value
+                    fclose(clustering_analysis_file);
+                } else{
+                    UFATAL("No clustering_results file found. The path is defined in the rtabmap.ini file. Check again.");
+
+                }
+
+
+                std::cout << "Number of clusters found: " << clusterizer.clusterCount() << std::endl;
+                std::cout << "Number of edges loaded: " << loops_after_clustering.size() << std::endl;
+
 
 		}
 
@@ -451,7 +455,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                     double prior;
 
 
-                    if (scs_ == true)
+                    if (cps_ == true)
                     {
                         // fetch the score from the clusterizer
                         std::cout << "current edge: " << id1 << " " << id2 << std::endl;
@@ -569,7 +573,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 					   iter->second.type()!=Link::kNeighbor &&
 					   iter->second.type() != Link::kNeighborMerged)
 					{
-                        if (scs_ == true)
+                        if (cps_ == true)
                         {
                             if (edge_in_loops == true)
                             {
@@ -632,7 +636,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 					   iter->second.type() != Link::kNeighborMerged)
 					{
 
-                        if (scs_ == true)
+                        if (cps_ == true)
                         {
                             if (edge_in_loops == true)
                             {
@@ -679,9 +683,9 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 		UDEBUG("%d switch vertex has been added", switchCounter- poses.size() -1);
 
-		if (scs_ == true)
+		if (cps_ == true)
         {
-		    if (squeeze_factor_ == true)
+		    if (cluster_factor_ == true)
             {
                 UDEBUG("Add New between factors");
 
@@ -722,12 +726,12 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 
                                 if (sigmoid_== true){
-                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ *(loops_incluster.size()-1)/2));
-                                    graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(cluster_penalty_ *(loops_incluster.size()-1)/2));
+                                    graph.add(vertigo::BetweenFactorClusterSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                                 }else{
-                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ *(loops_incluster.size()-1)/2));
-                                    graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+                                    gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(cluster_penalty_ *(loops_incluster.size()-1)/2));
+                                    graph.add(vertigo::BetweenFactorClusterSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                                 }
                                 std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
@@ -747,12 +751,12 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
                             }
 
                             if (sigmoid_== true){
-                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ * (loops_incluster.size()-1)/2));
-                                graph.add(vertigo::BetweenFactorSqueezeSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(cluster_penalty_ * (loops_incluster.size()-1)/2));
+                                graph.add(vertigo::BetweenFactorClusterSwitchableSigmoid(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                             }else{
-                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(squeeze_penalty_ * (loops_incluster.size()-1)/2));
-                                graph.add(vertigo::BetweenFactorSqueezeSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
+                                gtsam::noiseModel::Diagonal::shared_ptr model = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector1(cluster_penalty_ * (loops_incluster.size()-1)/2));
+                                graph.add(vertigo::BetweenFactorClusterSwitchableLinear(gtsam::Symbol('s', switchVariable_first_ID), gtsam::Symbol('s', switchVariable_second_ID), model));
 
                             }
                             std::cout << "linking: pair (" << loop_in_check_first.first << "," << loop_in_check_first.second << "), (" << loop_in_check_second.first << "," << loop_in_check_second.second << ")" << std::endl;
@@ -1443,7 +1447,7 @@ bool OptimizerGTSAM::saveGraph(
                     iter->second.type() != Link::kNeighborMerged)
             {
                 IntPair current_edge(iter->second.from(), iter->second.to());
-                if (scs_ == true)
+                if (cps_ == true)
                 {
                     if (loops_after_clustering.find(current_edge) != loops_after_clustering.end()) // if this edge exists in loops_after_clustering
                     {

@@ -1,6 +1,6 @@
 
 #ADD_SUBDIRECTORY( BOWMapping )
-ADD_SUBDIRECTORY( BackendTesting )
+ADD_SUBDIRECTORY( RobustBackend )
 MESSAGE(STATUS "Building backend example ONLY")
 
 
