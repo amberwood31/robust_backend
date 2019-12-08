@@ -1,3 +1,5 @@
+#!/bin/bash
+
 INPUT=$1 # folder path
 FILENAME=$2
 END=$3
@@ -21,6 +23,7 @@ do
 
     #move back
     cd ../../rtabmap/bin  
+    rm sorted.g2o del0.g2o
 
 
 

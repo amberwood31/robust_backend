@@ -995,6 +995,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 
 
 		// compute marginals
+		/*
 		try {
 			UDEBUG("Computing marginals...");
 			UTimer t;
@@ -1035,6 +1036,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		{
 			UWARN("GTSAM exception caught: %s", e.what());
 		}
+		 */
 
 		// These two lines are moved here from the main function to access loops_after_clustering
         std::string export_path = "/home/amber/stew/rtabmap/bin/output.g2o";
