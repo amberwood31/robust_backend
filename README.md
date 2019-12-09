@@ -11,7 +11,7 @@ cd build
 cmake ..
 make -j4
 cd ../bin
-./backend <input_pose_graph_file> # this will throw error if the following step is not done
+./backend <input_pose_graph_file> # this will throw error if the clustering_results file is not found
 ```
 
 2. In order to use cluster-based penalty scaling method, you need to clone and build the clustering code as well.
@@ -60,7 +60,7 @@ The python script **plot_g2o_with_link.py** will plot your optimized graph.
 >g2o\RobustKernelType=1 \
 >g2o\RobustKernelDelta=1 \
 >... \
->Reg\Force3DoF=true \
+>Reg\Force3DoF=true 
 
 If you want to use switchable constraint method for robust pose graph optimization, change the parameters as below.
 >Optimizer\Robust=true \
@@ -78,7 +78,7 @@ If you want to use switchable constraint method for robust pose graph optimizati
 >g2o\RobustKernelType=1 \
 >g2o\RobustKernelDelta=1 \
 >... \
->Reg\Force3DoF=true \
+>Reg\Force3DoF=true 
 
 If you want to use dynamic covariance scaling method for robust pose graph optimization, change the parameters as below.
 >Optimizer\Robust=false \
@@ -96,7 +96,7 @@ If you want to use dynamic covariance scaling method for robust pose graph optim
 >g2o\RobustKernelType=1 \
 >g2o\RobustKernelDelta=1 # change this to try different kernel size\
 >... \
->Reg\Force3DoF=true \
+>Reg\Force3DoF=true 
 
 If you want to process 3D datasets, change the parameter **Reg\Force3DOF** to be false. Pose graph files need to be in g2o format.
 
