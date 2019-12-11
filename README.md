@@ -1,6 +1,8 @@
 Cluster-based Penalty Scaling for Robust Pose Graph Optimization
 =======
 
+This work is implemented within RTABMAP framework (https://github.com/introlab/rtabmap). Since the actual implementation is within the OptimizerGTSAM source code, it obviously could be separated from RTABMAP and used by itself. We chose to work within RTABMAP to leverage its extensive libraries and well-designed parameter header. 
+
 ### To Use:
 1. Clone and build the robust backend
 ```
