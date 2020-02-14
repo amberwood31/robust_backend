@@ -3,6 +3,7 @@
 INPUT=$1 # folder path
 FILENAME=$2
 END=$3
+METHOD=$4
 
 for ((SEED=1;SEED<=END;SEED++))
 do
@@ -12,7 +13,7 @@ do
     cp "$INPUT""$FILENAME".g2o_unique.g2o_seed_"$SEED"_sorted.g2o sorted.g2o
     cp "$INPUT""$FILENAME".g2o_unique.g2o_seed_"$SEED"_del0.g2o del0.g2o
     sleep 1
-    ./run_example.sh sorted.g2o del0.g2o
+    ./run_example.sh sorted.g2o del0.g2o "$METHOD"
 
    
     #move to analysis chamber

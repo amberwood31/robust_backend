@@ -1043,7 +1043,7 @@ void OptimizerGTSAM::parseParameters(const ParametersMap & parameters)
 		 */
 
 		// These two lines are moved here from the main function to access loops_after_clustering
-        std::string export_path = "/home/amber/stew/rtabmap/bin/output.g2o";
+        std::string export_path = "output.g2o";
 		saveGraph(export_path, optimizedPoses, edgeConstraints, loops_after_clustering);
 
 
